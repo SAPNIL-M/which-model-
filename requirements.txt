@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlmodel
+httpx
+PyYAML
+python-dotenv
+jinja2
+markdown
+bleach
+slowapi
+pytest
+pytest-asyncio

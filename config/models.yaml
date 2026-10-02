@@ -1,0 +1,24 @@
+generation:
+  temperature: 0.3
+  max_tokens: 800
+  system_prompt: "Answer helpfully and concisely."
+models:
+  - id: open-model-placeholder
+    display_name: Open model placeholder
+    kind: openai_compatible
+    base_url: https://integrate.api.nvidia.com/v1
+    api_key_env: NVIDIA_API_KEY
+    provider_model_id: replace-with-model-from-list-script
+    is_open: true
+    license_type: custom_open_weights
+    license_note: Replace with the model's actual license.
+    live_enabled: false
+  - id: baseline-placeholder
+    display_name: Closed baseline placeholder
+    kind: gemini
+    api_key_env: GEMINI_API_KEY
+    provider_model_id: replace-with-gemini-model
+    is_open: false
+    license_type: closed
+    is_baseline: true
+    live_enabled: false
