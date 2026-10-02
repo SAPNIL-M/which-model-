@@ -1,9 +1,291 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Submit prompts</title></head>
-<body><main><h1>Submit your prompts</h1><p>Do not include personal or sensitive information. Add 5 to 15 prompts.</p>
-<form id="prompt-form"><div id="prompts"></div><button type="submit">Start benchmark</button></form>
+{% extends "base.html" %}
+
+{% block title %}Submit Prompts — WhichModel?{% endblock %}
+
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto;">
+  <!-- Page Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+        <span>Step 1 of 2</span>
+        <span>•</span>
+        <span>Prompt Submission</span>
+      </div>
+      <h1 style="font-size: 2rem; margin-bottom: 0.35rem;">Submit Your Prompts</h1>
+      <p style="color: var(--text-secondary);">Add 5 to 15 prompts you genuinely use AI for. Models will generate answers in the background.</p>
+    </div>
+
+    <div style="text-align: right;">
+      <div id="prompt-counter-badge" class="badge badge-neutral" style="font-size: 0.95rem; padding: 0.45rem 0.9rem; font-weight: 700;">
+        <span id="prompt-count-text">5</span> / 15 Prompts Added
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy & Quick Action Banner -->
+  <div class="card" style="margin-bottom: 2rem; background: rgba(30, 41, 59, 0.45); border-color: rgba(99, 102, 241, 0.2);">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+      <div style="display: flex; align-items: flex-start; gap: 0.75rem; max-width: 580px;">
+        <span style="font-size: 1.35rem; flex-shrink: 0; line-height: 1;">🛡️</span>
+        <div>
+          <strong style="color: #ffffff; font-size: 0.92rem; display: block;">Privacy Best Practice</strong>
+          <span style="font-size: 0.85rem; color: var(--text-secondary);">
+            Prompts are sent to AI providers for benchmarking. Please do not submit confidential business secrets, passwords, or personal identifying information.
+          </span>
+        </div>
+      </div>
+
+      <button type="button" id="btn-fill-samples" class="btn btn-secondary btn-sm" style="font-size: 0.85rem;">
+        <span>⚡ Quick-fill 5 Sample Prompts</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Alert Container -->
+  <div id="error-banner" class="alert alert-error" style="display: none;" role="alert">
+    <span>⚠️</span>
+    <span id="error-message"></span>
+  </div>
+
+  <!-- Prompts Form -->
+  <form id="prompt-form">
+    <div id="prompts-container"></div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle);">
+      <button type="button" id="btn-add-prompt" class="btn btn-secondary">
+        <span>+ Add Another Prompt</span>
+      </button>
+
+      <button type="submit" id="btn-submit" class="btn btn-primary btn-lg">
+        <span id="submit-spinner" class="spinner" style="width: 18px; height: 18px; border-width: 2px; margin: 0; display: none;"></span>
+        <span id="submit-btn-text">Start Benchmark &amp; Generate Answers 🚀</span>
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-const categories={{ categories|tojson }};const root=document.querySelector('#prompts');
-function add(){const row=document.createElement('fieldset');row.innerHTML='<textarea maxlength="1500" required placeholder="A task you actually give AI"></textarea><select>'+categories.map(c=>`<option value="${c}">${c.replace('_',' ')}</option>`).join('')+'</select>';root.append(row)}
-for(let i=0;i<5;i++)add();
-document.querySelector('#prompt-form').addEventListener('submit',async e=>{e.preventDefault();const prompts=[...root.children].map(r=>({text:r.querySelector('textarea').value,category:r.querySelector('select').value}));const res=await fetch('/api/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompts})});if(res.ok)location='/pick';else alert((await res.json()).error)})
-</script></main></body></html>
+const categories = {{ categories|tojson }};
+const container = document.querySelector('#prompts-container');
+const counterBadge = document.querySelector('#prompt-counter-badge');
+const countText = document.querySelector('#prompt-count-text');
+const btnAdd = document.querySelector('#btn-add-prompt');
+const btnFillSamples = document.querySelector('#btn-fill-samples');
+const form = document.querySelector('#prompt-form');
+const btnSubmit = document.querySelector('#btn-submit');
+const submitText = document.querySelector('#submit-btn-text');
+const submitSpinner = document.querySelector('#submit-spinner');
+const errorBanner = document.querySelector('#error-banner');
+const errorMessage = document.querySelector('#error-message');
+
+const categoryIcons = {
+  coding: '💻 Coding',
+  writing: '✍️ Writing',
+  study_help: '📚 Study Help',
+  summarizing: '📝 Summarizing',
+  translation: '🌐 Translation',
+  other: '🔮 Other'
+};
+
+const samplePrompts = [
+  {
+    category: 'coding',
+    text: 'Write a Python function to safely flatten a nested JSON dictionary with a custom separator for keys. Include clear type hints and docstrings.'
+  },
+  {
+    category: 'writing',
+    text: 'Draft a friendly, professional announcement email to our engineering team about switching to our new model benchmark tool.'
+  },
+  {
+    category: 'study_help',
+    text: 'Explain the difference between optimistic and pessimistic concurrency control in databases with intuitive real-world examples.'
+  },
+  {
+    category: 'summarizing',
+    text: 'Summarize the primary architectural trade-offs between monolithic backends and microservices into four concise bullet points.'
+  },
+  {
+    category: 'translation',
+    text: 'Translate this sentence into natural, professional French and Spanish: "We are committed to delivering low-latency, transparent AI benchmarks."'
+  }
+];
+
+function updateCounter() {
+  const count = container.children.length;
+  countText.textContent = count;
+  if (count >= 15) {
+    btnAdd.disabled = true;
+    btnAdd.style.opacity = '0.5';
+    btnAdd.style.cursor = 'not-allowed';
+  } else {
+    btnAdd.disabled = false;
+    btnAdd.style.opacity = '1';
+    btnAdd.style.cursor = 'pointer';
+  }
+
+  // Update prompt card headers and delete buttons
+  [...container.children].forEach((card, idx) => {
+    card.querySelector('.prompt-idx').textContent = idx + 1;
+    const btnDel = card.querySelector('.btn-delete-prompt');
+    if (btnDel) {
+      btnDel.style.display = count > 5 ? 'inline-flex' : 'none';
+    }
+  });
+}
+
+function createPromptCard(initialData = null) {
+  const card = document.createElement('div');
+  card.className = 'prompt-card';
+
+  const defaultCat = initialData?.category || categories[0];
+  const initialText = initialData?.text || '';
+
+  card.innerHTML = `
+    <div class="prompt-card-header">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span class="prompt-number-badge">
+          Prompt #<span class="prompt-idx"></span>
+        </span>
+        <select class="form-select prompt-category" style="width: auto; padding: 0.35rem 2rem 0.35rem 0.75rem; font-size: 0.86rem; font-weight: 600;">
+          ${categories.map(c => `
+            <option value="${c}" ${c === defaultCat ? 'selected' : ''}>
+              ${categoryIcons[c] || c.replace('_', ' ')}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span class="char-counter"><span class="char-val">${initialText.length}</span> / 1500</span>
+        <button type="button" class="btn btn-ghost btn-sm btn-delete-prompt" style="color: #f87171; padding: 0.2rem 0.5rem;" title="Remove this prompt">
+          ✕ Remove
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 0.65rem;">
+      <textarea 
+        class="form-textarea prompt-text" 
+        maxlength="1500" 
+        required 
+        placeholder="Enter a task or prompt you actually give to AI models..."
+        rows="3"
+      >${initialText}</textarea>
+    </div>
+
+    <div class="prompt-card-footer">
+      <label class="checkbox-label" style="margin: 0; font-size: 0.84rem;">
+        <input type="checkbox" class="prompt-share" ${initialData?.share_publicly ? 'checked' : ''}>
+        <span>Allow this prompt text to appear in community results (optional)</span>
+      </label>
+    </div>
+  `;
+
+  const textarea = card.querySelector('.prompt-text');
+  const charVal = card.querySelector('.char-val');
+  const counterSpan = card.querySelector('.char-counter');
+
+  textarea.addEventListener('input', () => {
+    const len = textarea.value.length;
+    charVal.textContent = len;
+    if (len > 1400) {
+      counterSpan.className = 'char-counter danger';
+    } else if (len > 1200) {
+      counterSpan.className = 'char-counter warning';
+    } else {
+      counterSpan.className = 'char-counter';
+    }
+  });
+
+  const btnDel = card.querySelector('.btn-delete-prompt');
+  btnDel.addEventListener('click', () => {
+    if (container.children.length > 5) {
+      card.remove();
+      updateCounter();
+    }
+  });
+
+  return card;
+}
+
+function addPrompt(data = null) {
+  if (container.children.length < 15) {
+    const card = createPromptCard(data);
+    container.append(card);
+    updateCounter();
+  }
+}
+
+// Initialize with 5 prompts
+for (let i = 0; i < 5; i++) {
+  addPrompt();
+}
+
+btnAdd.addEventListener('click', () => addPrompt());
+
+btnFillSamples.addEventListener('click', () => {
+  container.innerHTML = '';
+  samplePrompts.forEach(p => addPrompt(p));
+  errorBanner.style.display = 'none';
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorBanner.style.display = 'none';
+
+  const rows = [...container.children];
+  const prompts = rows.map(r => ({
+    text: r.querySelector('.prompt-text').value.trim(),
+    category: r.querySelector('.prompt-category').value,
+    share_publicly: r.querySelector('.prompt-share').checked
+  }));
+
+  if (prompts.length < 5 || prompts.length > 15) {
+    errorMessage.textContent = 'Please provide between 5 and 15 prompts.';
+    errorBanner.style.display = 'flex';
+    return;
+  }
+
+  for (let i = 0; i < prompts.length; i++) {
+    if (!prompts[i].text) {
+      errorMessage.textContent = `Prompt #${i + 1} cannot be empty.`;
+      errorBanner.style.display = 'flex';
+      return;
+    }
+  }
+
+  // Loading state
+  btnSubmit.disabled = true;
+  submitSpinner.style.display = 'inline-block';
+  submitText.textContent = 'Starting benchmark & queueing models...';
+
+  try {
+    const res = await fetch('/api/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompts })
+    });
+
+    if (res.ok) {
+      location.href = '/pick';
+    } else {
+      const data = await res.json().catch(() => ({}));
+      errorMessage.textContent = data.error || 'Failed to submit prompts. Please try again.';
+      errorBanner.style.display = 'flex';
+      btnSubmit.disabled = false;
+      submitSpinner.style.display = 'none';
+      submitText.textContent = 'Start Benchmark & Generate Answers 🚀';
+    }
+  } catch (err) {
+    errorMessage.textContent = 'Network error. Please check your connection and try again.';
+    errorBanner.style.display = 'flex';
+    btnSubmit.disabled = false;
+    submitSpinner.style.display = 'none';
+    submitText.textContent = 'Start Benchmark & Generate Answers 🚀';
+  }
+});
+</script>
+{% endblock %}

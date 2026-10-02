@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}WhichModel? — Real Prompt AI Benchmark{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Font enhancement if Google fonts load */
+    body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="navbar">
+    <div class="app-container nav-inner">
+      <a href="/" class="nav-brand">
+        <span class="brand-icon">⚡</span>
+        <span>WhichModel?</span>
+        <span class="brand-badge">Benchmark</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/submit" class="nav-link {% if request.url.path == '/submit' %}active{% endif %}">Submit Prompts</a></li>
+          <li><a href="/pick" class="nav-link {% if request.url.path == '/pick' %}active{% endif %}">Blind Pick</a></li>
+          <li><a href="/results/me" class="nav-link {% if request.url.path == '/results/me' %}active{% endif %}">My Results</a></li>
+          <li><a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">Leaderboard</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="content-area app-container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="app-container footer-content">
+      <p><strong>WhichModel?</strong> — Built for that friend who goes <em>"Bro, what's the best open source model I can run?"</em></p>
+      <p>Comparing frontier open-weight models against closed baselines on real-world prompts.</p>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,7 +1,216 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your results</title></head>
-<body><main><h1>{{ participant.display_name }}, your results</h1>
-<p>Based on {{ stats.picked }} picked prompts and {{ stats.none_good }} “none are good” responses.</p>
-{% for category, rows in stats.categories.items() %}<section><h2>{{ category.replace('_', ' ') }}</h2>
-{% for model_id, row in rows.items() %}<p>{{ stats.models[model_id].display_name }} — {{ '%.0f'|format(row.win_rate * 100) }}% pairwise win rate ({{ row.comparisons }} comparisons){% if row.small_sample %} — treat this as a hint; not enough picks yet{% endif %}</p>{% endfor %}</section>{% endfor %}
-<button id="delete">Delete my data</button><script>document.querySelector('#delete').onclick=async()=>{if(confirm('Delete all your prompts and results?')){await fetch('/api/me',{method:'DELETE'});location='/'}}</script>
-</main></body></html>
+{% extends "base.html" %}
+
+{% block title %}Your Results — WhichModel?{% endblock %}
+
+{% block content %}
+<div style="max-width: 980px; margin: 0 auto;">
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+        <span>Personal Benchmark</span>
+        <span>•</span>
+        <span>{{ participant.display_name }}</span>
+      </div>
+      <h1 style="font-size: 2.1rem; margin-bottom: 0.35rem;">Your Benchmark Results</h1>
+      <p style="color: var(--text-secondary);">Here is how each AI model performed against your prompts and criteria.</p>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/results" class="btn btn-secondary">
+        <span>🌐 Community Leaderboard</span>
+      </a>
+      <button id="delete" class="btn btn-danger btn-sm">
+        <span>🗑️ Delete My Data</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-label">Prompts Judged</span>
+      <span class="stat-value">{{ stats.picked + stats.none_good }}</span>
+      <span class="stat-subtitle">{{ stats.picked }} picked, {{ stats.none_good }} rejected</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Open vs Closed</span>
+      <span class="stat-value">
+        {% if stats.open_vs_closed.n > 0 %}
+          {{ '%.0f'|format(stats.open_vs_closed.share * 100) }}%
+        {% else %}
+          —
+        {% endif %}
+      </span>
+      <span class="stat-subtitle">
+        {% if stats.open_vs_closed.n > 0 %}
+          Open models won {{ stats.open_vs_closed.open_wins }} of {{ stats.open_vs_closed.n }} baseline matchups
+        {% else %}
+          No baseline matchups yet
+        {% endif %}
+      </span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">"None Good" Rate</span>
+      <span class="stat-value">{{ '%.0f'|format(stats.none_good_rate * 100) }}%</span>
+      <span class="stat-subtitle">{{ stats.none_good }} prompts had no good answers</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Top Model For You</span>
+      <span class="stat-value" style="font-size: 1.25rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 0.4rem;">
+        {% set ns = namespace(best_name="None", best_rate=-1) %}
+        {% for mid, m in stats.models.items() %}
+          {% if m.comparisons > 0 and m.win_rate > ns.best_rate %}
+            {% set ns.best_name = m.display_name %}
+            {% set ns.best_rate = m.win_rate %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.best_name }}
+      </span>
+      <span class="stat-subtitle">
+        {% if ns.best_rate >= 0 %}
+          {{ '%.0f'|format(ns.best_rate * 100) }}% pairwise win rate
+        {% else %}
+          Awaiting more picks
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Overall Models Standings Table -->
+  <div style="margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.35rem;">Overall Model Performance For You</h2>
+      <span style="font-size: 0.84rem; color: var(--text-muted);">Pairwise win rate on your prompts</span>
+    </div>
+
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Type</th>
+            <th>Win Rate (Pairwise)</th>
+            <th>Pick Rate</th>
+            <th>Comparisons</th>
+            <th>Sample Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set sorted_models = stats.models.values() | sort(attribute='win_rate', reverse=True) %}
+          {% for row in sorted_models %}
+            {% if row.shown > 0 %}
+            <tr>
+              <td style="font-weight: 600; color: #ffffff;">{{ row.display_name }}</td>
+              <td>
+                {% if row.is_open %}
+                  <span class="badge badge-open">🌿 Open Model</span>
+                {% else %}
+                  <span class="badge badge-closed">🔒 Closed Baseline</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="win-rate-bar-container">
+                  <div class="win-rate-track">
+                    <div class="win-rate-fill" style="width: {{ '%.0f'|format(row.win_rate * 100) }}%;"></div>
+                  </div>
+                  <strong style="color: #ffffff; min-width: 40px;">{{ '%.0f'|format(row.win_rate * 100) }}%</strong>
+                </div>
+              </td>
+              <td style="font-variant-numeric: tabular-nums;">
+                {{ '%.0f'|format(row.pick_rate * 100) }}%
+                <span style="font-size: 0.78rem; color: var(--text-muted);">({{ row.chosen }}/{{ row.shown }})</span>
+              </td>
+              <td style="font-variant-numeric: tabular-nums;">{{ row.comparisons }}</td>
+              <td>
+                {% if row.small_sample %}
+                  <span class="badge badge-warning" title="Based on fewer than 10 comparisons">⚠️ Treat as hint</span>
+                {% else %}
+                  <span class="badge badge-neutral" style="color: #34d399;">✓ Sufficient</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Performance By Category -->
+  <div style="margin-bottom: 2rem;">
+    <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">Performance by Task Category</h2>
+
+    <div class="categories-grid">
+      {% for category, rows in stats.categories.items() %}
+      <div class="category-card">
+        <div class="category-header">
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <span style="font-weight: 700; font-size: 1.05rem; color: #ffffff; text-transform: capitalize;">
+              {{ category|clean_category }}
+            </span>
+          </div>
+          <span class="badge badge-category">{{ rows|length }} models tested</span>
+        </div>
+
+        <div>
+          {% for model_id, row in rows.items() %}
+            <div class="category-item">
+              <div class="category-item-meta">
+                <span style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">
+                  {{ stats.models[model_id].display_name }}
+                </span>
+                <span style="font-weight: 700; color: #ffffff; font-size: 0.88rem;">
+                  {{ '%.0f'|format(row.win_rate * 100) }}%
+                </span>
+              </div>
+              <div class="win-rate-track" style="height: 5px;">
+                <div class="win-rate-fill" style="width: {{ '%.0f'|format(row.win_rate * 100) }}%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--text-muted);">
+                <span>{{ row.comparisons }} comparisons</span>
+                {% if row.small_sample %}
+                  <span style="color: var(--accent-warning);">Hint only (<10 picks)</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const btnDelete = document.querySelector('#delete');
+if (btnDelete) {
+  btnDelete.addEventListener('click', async () => {
+    const ok = confirm('Are you sure you want to delete all your submitted prompts, answers, and pick history? This cannot be undone.');
+    if (ok) {
+      btnDelete.disabled = true;
+      btnDelete.textContent = 'Deleting...';
+      try {
+        const res = await fetch('/api/me', { method: 'DELETE' });
+        if (res.ok) {
+          location.href = '/';
+        } else {
+          alert('Failed to delete data.');
+          btnDelete.disabled = false;
+          btnDelete.textContent = '🗑️ Delete My Data';
+        }
+      } catch (err) {
+        alert('Network error while deleting data.');
+        btnDelete.disabled = false;
+        btnDelete.textContent = '🗑️ Delete My Data';
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@ from app.db import engine
 from app.models import Answer, Model, Pick, Prompt
 from app.rate_limit import allowed
 from app.security import verify_session
+from app.services.markdown_safe import render_safe_markdown
 
 router = APIRouter()
 config = load_config()
@@ -57,7 +58,12 @@ def next_prompt(request: Request):
                 "prompt": prompt.text,
                 "category": prompt.category,
                 "answers": [
-                    {"id": answer.id, "label": chr(65 + index), "text": answer.text}
+                    {
+                        "id": answer.id,
+                        "label": chr(65 + index),
+                        "text": answer.text,
+                        "html": render_safe_markdown(answer.text),
+                    }
                     for index, answer in enumerate(answers)
                 ],
                 "progress": {"current": completed + 1, "total": len(prompts)},

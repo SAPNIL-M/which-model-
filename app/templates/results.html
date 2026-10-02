@@ -1,7 +1,285 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Group results</title></head>
-<body><main><h1>Group results</h1>
-{% for model_id, row in stats.models.items() %}<p>{{ row.display_name }} — {{ '%.0f'|format(row.win_rate * 100) }}% pairwise win rate ({{ row.comparisons }} comparisons), {{ '%.0f'|format(row.pick_rate * 100) }}% pick rate{% if row.small_sample %} — not enough picks yet{% endif %}</p>{% endfor %}
-<p>Open models picked over the baseline: {{ stats.open_vs_closed.open_wins }}/{{ stats.open_vs_closed.n }}</p>
-<p>“None are good” rate: {{ '%.0f'|format(stats.none_good_rate * 100) }}%</p>
-<h2>Friends' picks</h2>{% for profile in public_profiles %}<p>{{ profile.display_name }}{% for category, model in profile.top_by_category.items() %} — {{ category.replace('_', ' ') }}: {{ model }}{% endfor %}</p>{% endfor %}
-</main></body></html>
+{% extends "base.html" %}
+
+{% block title %}Community Leaderboard — WhichModel?{% endblock %}
+
+{% block content %}
+<div style="max-width: 1040px; margin: 0 auto;">
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+        <span>Aggregate Benchmark</span>
+        <span>•</span>
+        <span>Community Findings</span>
+      </div>
+      <h1 style="font-size: 2.2rem; margin-bottom: 0.35rem;">Model Benchmark Leaderboard</h1>
+      <p style="color: var(--text-secondary);">Real prompt evaluations aggregated across all participants.</p>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <a href="/submit" class="btn btn-primary">
+        <span>+ Test Your Prompts</span>
+      </a>
+      <a href="/results.json" target="_blank" class="btn btn-secondary btn-sm" title="View raw JSON data">
+        <span>{ } JSON API</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Open vs Closed Headline Showdown Card -->
+  <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(19, 27, 46, 0.95) 100%); border-color: rgba(99, 102, 241, 0.3); padding: 1.75rem; margin-bottom: 2rem; box-shadow: var(--shadow-lg);">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem;">
+      <div style="max-width: 620px;">
+        <span class="badge badge-open" style="margin-bottom: 0.75rem;">⚔️ Head-to-Head Showdown</span>
+        <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: #ffffff;">
+          Open-Weight Models vs Closed Baseline
+        </h2>
+        <p style="color: #cbd5e1; font-size: 1rem; line-height: 1.5;">
+          {% if stats.open_vs_closed.n > 0 %}
+            Open-weight models were chosen over the closed baseline in 
+            <strong style="color: #34d399; font-size: 1.15rem;">{{ stats.open_vs_closed.open_wins }} of {{ stats.open_vs_closed.n }}</strong> matchups 
+            (<strong style="color: #ffffff;">{{ '%.0f'|format(stats.open_vs_closed.share * 100) }}%</strong> win rate).
+          {% else %}
+            No direct open vs closed baseline matchups have been recorded yet. Submit prompts to generate head-to-head comparisons!
+          {% endif %}
+        </p>
+      </div>
+
+      <div style="text-align: right; min-width: 180px;">
+        <div style="font-size: 2.75rem; font-weight: 800; color: #34d399; line-height: 1; letter-spacing: -0.04em;">
+          {% if stats.open_vs_closed.n > 0 %}
+            {{ '%.0f'|format(stats.open_vs_closed.share * 100) }}%
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-top: 0.25rem;">
+          Open Models Win Rate
+        </div>
+      </div>
+    </div>
+
+    {% if stats.open_vs_closed.n > 0 %}
+    <div style="margin-top: 1.25rem;">
+      <div class="progress-bar-bg" style="height: 10px; background: rgba(56, 189, 248, 0.25);">
+        <div class="progress-bar-fill" style="width: {{ '%.0f'|format(stats.open_vs_closed.share * 100) }}%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">
+        <span>🌿 Open Models ({{ stats.open_vs_closed.open_wins }})</span>
+        <span>🔒 Closed Baseline ({{ stats.open_vs_closed.n - stats.open_vs_closed.open_wins }})</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-label">Total Prompts Evaluated</span>
+      <span class="stat-value">{{ stats.picked + stats.none_good }}</span>
+      <span class="stat-subtitle">{{ stats.picked }} successful picks</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">"None Are Good" Rate</span>
+      <span class="stat-value">{{ '%.0f'|format(stats.none_good_rate * 100) }}%</span>
+      <span class="stat-subtitle">{{ stats.none_good }} prompts rejected entirely</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Configured Models</span>
+      <span class="stat-value">{{ stats.models|length }}</span>
+      <span class="stat-subtitle">Across open NIM &amp; Gemini providers</span>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-label">Public Contributors</span>
+      <span class="stat-value">{{ public_profiles|length }}</span>
+      <span class="stat-subtitle">Friends sharing their top picks</span>
+    </div>
+  </div>
+
+  <!-- Leaderboard Table -->
+  <div style="margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+      <div>
+        <h2 style="font-size: 1.4rem;">Model Standings Leaderboard</h2>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">Ranked by pairwise win rate against competing model answers.</p>
+      </div>
+    </div>
+
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">Rank</th>
+            <th>Model</th>
+            <th>Type</th>
+            <th>License</th>
+            <th>Win Rate (Pairwise)</th>
+            <th>Pick Rate</th>
+            <th>Comparisons</th>
+            <th>Latency (Median)</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set sorted_models = stats.models.values() | sort(attribute='win_rate', reverse=True) %}
+          {% set rank = namespace(val=1) %}
+          {% for row in sorted_models %}
+            <tr>
+              <td style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">
+                #{{ rank.val }}
+                {% set rank.val = rank.val + 1 %}
+              </td>
+              <td style="font-weight: 600; color: #ffffff;">
+                {{ row.display_name }}
+              </td>
+              <td>
+                {% if row.is_open %}
+                  <span class="badge badge-open">🌿 Open</span>
+                {% else %}
+                  <span class="badge badge-closed">🔒 Baseline</span>
+                {% endif %}
+              </td>
+              <td style="font-size: 0.82rem; color: var(--text-secondary);">
+                {% if row.license_type == 'permissive' %}
+                  <span style="color: #34d399;">Open Source</span>
+                {% elif row.license_type == 'custom_open_weights' %}
+                  <span style="color: #cbd5e1;">Open Weights</span>
+                {% else %}
+                  <span style="color: var(--text-muted);">Closed</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="win-rate-bar-container">
+                  <div class="win-rate-track">
+                    <div class="win-rate-fill" style="width: {{ '%.0f'|format(row.win_rate * 100) }}%;"></div>
+                  </div>
+                  <strong style="color: #ffffff; min-width: 40px;">{{ '%.0f'|format(row.win_rate * 100) }}%</strong>
+                </div>
+              </td>
+              <td style="font-variant-numeric: tabular-nums;">
+                {{ '%.0f'|format(row.pick_rate * 100) }}%
+                <span style="font-size: 0.78rem; color: var(--text-muted);">({{ row.chosen }}/{{ row.shown }})</span>
+              </td>
+              <td style="font-variant-numeric: tabular-nums;">{{ row.comparisons }}</td>
+              <td style="font-variant-numeric: tabular-nums; font-size: 0.86rem; color: var(--text-secondary);">
+                {% if row.median_latency_ms %}
+                  {{ '%.0f'|format(row.median_latency_ms) }} ms
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if row.small_sample %}
+                  <span class="badge badge-warning" title="Fewer than 10 comparisons">⚠️ n &lt; 10</span>
+                {% else %}
+                  <span class="badge badge-neutral" style="color: #34d399;">✓ Stable</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Performance by Category -->
+  <div style="margin-bottom: 2.5rem;">
+    <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">Category Breakdown</h2>
+    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">Compare model win rates across individual prompt task domains.</p>
+
+    <div class="categories-grid">
+      {% for category, rows in stats.categories.items() %}
+      <div class="category-card">
+        <div class="category-header">
+          <span style="font-weight: 700; font-size: 1.05rem; color: #ffffff; text-transform: capitalize;">
+            {{ category|clean_category }}
+          </span>
+          <span class="badge badge-category">{{ rows|length }} models</span>
+        </div>
+
+        <div>
+          {% for model_id, row in rows.items() %}
+            <div class="category-item">
+              <div class="category-item-meta">
+                <span style="font-weight: 600; color: #e2e8f0; font-size: 0.88rem;">
+                  {{ stats.models[model_id].display_name }}
+                </span>
+                <span style="font-weight: 700; color: #ffffff; font-size: 0.86rem;">
+                  {{ '%.0f'|format(row.win_rate * 100) }}%
+                </span>
+              </div>
+              <div class="win-rate-track" style="height: 5px;">
+                <div class="win-rate-fill" style="width: {{ '%.0f'|format(row.win_rate * 100) }}%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                <span>{{ row.comparisons }} comparisons</span>
+                {% if row.small_sample %}
+                  <span style="color: var(--accent-warning);">Sample &lt; 10</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Friends' Picks Section -->
+  <div style="margin-bottom: 2.5rem;">
+    <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">Friends' Top Picks</h2>
+    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">Favorite models by task type for participants who opted in with public profiles.</p>
+
+    {% if public_profiles %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+        {% for profile in public_profiles %}
+          <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem; padding-bottom: 0.65rem; border-bottom: 1px solid var(--border-subtle);">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #38bdf8 100%); color: #fff; font-weight: 700; font-size: 0.95rem;">
+                {{ profile.display_name[0] | upper }}
+              </span>
+              <div>
+                <strong style="color: #ffffff; font-size: 0.98rem; display: block;">{{ profile.display_name }}</strong>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Community Contributor</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              {% if profile.top_by_category %}
+                {% for category, model_name in profile.top_by_category.items() %}
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; padding: 0.35rem 0.6rem; background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm);">
+                    <span style="color: var(--text-secondary); text-transform: capitalize;">{{ category|clean_category }}</span>
+                    <strong style="color: #c7d2fe;">{{ model_name }}</strong>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Picks in progress...</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card" style="text-align: center; padding: 2rem; background: rgba(30, 41, 59, 0.3);">
+        <p style="color: var(--text-secondary); font-size: 0.92rem;">
+          No public profiles yet. When friends join and enable public recognition, their top models by task category will appear here!
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Methodology & Fairness Callout -->
+  <div class="card" style="background: rgba(15, 23, 42, 0.6); border-color: var(--border-subtle); padding: 1.25rem;">
+    <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+      <span style="font-size: 1.25rem;">⚖️</span>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+        <strong style="color: #ffffff;">Benchmark Integrity &amp; Transparency:</strong>
+        All models receive identical system prompts, temperature (0.3), and max tokens (800). Prompts are evaluated double-blind with randomized presentation orders. Pairwise comparisons flag sample sizes under 10 as hints. Model licensing is labeled transparently (permissive open source vs custom open-weights vs closed).
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

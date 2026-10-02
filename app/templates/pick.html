@@ -1,8 +1,352 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choose an answer</title></head>
-<body><main><h1>Which answer is best?</h1><p id="progress"></p><p id="prompt"></p><div id="answers"></div><p id="status">Waiting for answers...</p>
+{% extends "base.html" %}
+
+{% block title %}Blind Evaluation — WhichModel?{% endblock %}
+
+{% block content %}
+<div style="max-width: 1040px; margin: 0 auto;">
+  <!-- Header & Progress -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+        <span>Step 2 of 2</span>
+        <span>•</span>
+        <span>Blind Taste Test</span>
+      </div>
+      <h1 style="font-size: 1.9rem; margin-bottom: 0.25rem;">Which Answer is Best?</h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">Model names are masked. Choose the answer that solves the prompt best.</p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div id="progress-card" class="card" style="padding: 0.65rem 1.15rem; min-width: 200px; display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+        <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Progress</span>
+        <span id="progress-text" style="font-size: 0.88rem; font-weight: 700; color: #ffffff;">1 of 5</span>
+      </div>
+      <div class="progress-bar-bg" style="height: 6px;">
+        <div id="progress-fill" class="progress-bar-fill" style="width: 20%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting / Generating State Box -->
+  <div id="waiting-state" class="waiting-box" style="display: none;">
+    <div class="spinner"></div>
+    <h3 style="font-size: 1.35rem; margin-bottom: 0.5rem; color: #ffffff;">Generating Model Answers...</h3>
+    <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 1.25rem; font-size: 0.95rem;">
+      Open-weight models and the closed baseline are generating answers to your prompts in parallel.
+    </p>
+    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); padding: 0.4rem 0.9rem; border-radius: var(--radius-full); border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.84rem; color: #a5b4fc;">
+      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite;"></span>
+      <span>Checking every 2 seconds for completed answers...</span>
+    </div>
+  </div>
+
+  <!-- Main Active Evaluation Area -->
+  <div id="eval-area" style="display: none;">
+    <!-- Active Prompt Display Card -->
+    <div class="prompt-display-box">
+      <div class="prompt-display-header">
+        <span id="prompt-category-badge" class="badge badge-category">Coding</span>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Your Prompt</span>
+      </div>
+      <div id="prompt-content" class="prompt-display-text"></div>
+    </div>
+
+    <!-- Reveal Outcome Banner (shown after a pick is made) -->
+    <div id="reveal-banner" class="alert alert-info" style="display: none; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.4rem;">🎉</span>
+        <div>
+          <strong id="reveal-title" style="display: block; color: #ffffff; font-size: 0.95rem;">Answer Revealed!</strong>
+          <span id="reveal-desc" style="font-size: 0.86rem; color: #cbd5e1;">Model identities are now unveiled below.</span>
+        </div>
+      </div>
+      <button id="btn-next" class="btn btn-primary btn-sm" style="font-size: 0.9rem; padding: 0.55rem 1.25rem;">
+        Next Prompt →
+      </button>
+    </div>
+
+    <!-- Answers Grid -->
+    <div id="answers-container" class="answers-grid"></div>
+
+    <!-- Bottom Secondary Actions -->
+    <div id="bottom-actions" style="display: flex; justify-content: center; margin-top: 1rem; margin-bottom: 2rem;">
+      <button type="button" id="btn-none-good" class="btn btn-secondary" style="font-size: 0.92rem; padding: 0.65rem 1.5rem; color: var(--text-secondary);">
+        <span>🤷 None of these answers are good</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Completion State Box -->
+  <div id="complete-state" class="card" style="text-align: center; padding: 3rem 1.5rem; display: none;">
+    <div style="font-size: 3rem; margin-bottom: 0.75rem;">🏁</div>
+    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Benchmark Complete!</h2>
+    <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 1.5rem;">
+      You have evaluated all submitted prompts. Your personalized performance rankings and open-vs-closed showdown are ready.
+    </p>
+    <a href="/results/me" class="btn btn-primary btn-lg">
+      View My Personalized Results →
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-let current;
-async function load(){const r=await fetch('/api/next');const d=await r.json();if(d.complete){document.querySelector('#status').textContent='All prompts complete.';location='/results/me';return}if(d.waiting){document.querySelector('#status').textContent='Still generating answers...';setTimeout(load,2000);return}current=d;document.querySelector('#progress').textContent=`${d.progress.current} of ${d.progress.total}`;document.querySelector('#prompt').textContent=d.prompt;const root=document.querySelector('#answers');root.innerHTML='';d.answers.forEach(a=>{const article=document.createElement('article');const heading=document.createElement('h2');heading.textContent=a.label;const pre=document.createElement('pre');pre.textContent=a.text;const button=document.createElement('button');button.textContent='Pick this one';button.dataset.id=a.id;button.onclick=()=>send(a.id,'picked');article.append(heading,pre,button);root.append(article)});const none=document.createElement('button');none.id='none';none.textContent='None are good';none.onclick=()=>send(null,'none_good');root.append(none);document.querySelector('#status').textContent=''}
-async function send(chosen,outcome){const ids=current.answers.map(a=>a.id);const r=await fetch('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt_id:current.prompt_id,shown_answer_ids:ids,chosen_answer_id:chosen,outcome})});if(r.ok){const d=await r.json();document.querySelector('#answers').innerHTML='<p>Models revealed: '+d.reveals.map(x=>x.display_name).join(', ')+'</p><button onclick="load()">Next</button>'}else alert((await r.json()).error)}
-load();
-</script></main></body></html>
+let currentData = null;
+let pollTimeout = null;
+
+const progressCard = document.querySelector('#progress-card');
+const progressText = document.querySelector('#progress-text');
+const progressFill = document.querySelector('#progress-fill');
+const waitingState = document.querySelector('#waiting-state');
+const evalArea = document.querySelector('#eval-area');
+const completeState = document.querySelector('#complete-state');
+const promptContent = document.querySelector('#prompt-content');
+const categoryBadge = document.querySelector('#prompt-category-badge');
+const answersContainer = document.querySelector('#answers-container');
+const revealBanner = document.querySelector('#reveal-banner');
+const revealTitle = document.querySelector('#reveal-title');
+const revealDesc = document.querySelector('#reveal-desc');
+const btnNext = document.querySelector('#btn-next');
+const btnNoneGood = document.querySelector('#btn-none-good');
+const bottomActions = document.querySelector('#bottom-actions');
+
+const categoryIcons = {
+  coding: '💻 Coding',
+  writing: '✍️ Writing',
+  study_help: '📚 Study Help',
+  summarizing: '📝 Summarizing',
+  translation: '🌐 Translation',
+  other: '🔮 Other'
+};
+
+async function loadNextPrompt() {
+  if (pollTimeout) clearTimeout(pollTimeout);
+  revealBanner.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/next');
+    const data = await res.json();
+
+    if (data.complete) {
+      waitingState.style.display = 'none';
+      evalArea.style.display = 'none';
+      progressCard.style.display = 'none';
+      completeState.style.display = 'block';
+      setTimeout(() => {
+        location.href = '/results/me';
+      }, 1200);
+      return;
+    }
+
+    if (data.waiting) {
+      waitingState.style.display = 'block';
+      evalArea.style.display = 'none';
+      completeState.style.display = 'none';
+      pollTimeout = setTimeout(loadNextPrompt, 2000);
+      return;
+    }
+
+    // Active prompt ready!
+    currentData = data;
+    waitingState.style.display = 'none';
+    completeState.style.display = 'none';
+    evalArea.style.display = 'block';
+    progressCard.style.display = 'block';
+    bottomActions.style.display = 'flex';
+
+    // Update Progress
+    if (data.progress) {
+      const cur = data.progress.current;
+      const tot = data.progress.total;
+      progressText.textContent = `${cur} of ${tot}`;
+      const pct = Math.round((cur / tot) * 100);
+      progressFill.style.width = `${pct}%`;
+    }
+
+    // Update Prompt
+    promptContent.textContent = data.prompt;
+    const cat = data.category || 'other';
+    categoryBadge.textContent = categoryIcons[cat] || cat.replace('_', ' ');
+
+    // Render Answers
+    renderAnswerCards(data.answers);
+
+  } catch (err) {
+    console.error('Error fetching next prompt:', err);
+    pollTimeout = setTimeout(loadNextPrompt, 3000);
+  }
+}
+
+function renderAnswerCards(answers) {
+  answersContainer.innerHTML = '';
+
+  answers.forEach((ans) => {
+    const card = document.createElement('div');
+    card.className = 'answer-card';
+    card.id = `card-${ans.id}`;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'answer-header';
+    header.innerHTML = `
+      <div class="answer-label">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: var(--radius-sm); background: rgba(99, 102, 241, 0.2); color: #c7d2fe; font-size: 0.85rem; font-weight: 800;">
+          ${ans.label}
+        </span>
+        <span>Option ${ans.label}</span>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm btn-copy" title="Copy answer text" style="font-size: 0.78rem; padding: 0.2rem 0.5rem;">
+        <span>📋 Copy</span>
+      </button>
+    `;
+
+    // Copy action
+    const btnCopy = header.querySelector('.btn-copy');
+    btnCopy.onclick = (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(ans.text).then(() => {
+        btnCopy.innerHTML = '<span>✓ Copied</span>';
+        btnCopy.style.color = '#34d399';
+        setTimeout(() => {
+          btnCopy.innerHTML = '<span>📋 Copy</span>';
+          btnCopy.style.color = '';
+        }, 1800);
+      });
+    };
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'answer-body markdown-content';
+    if (ans.html) {
+      body.innerHTML = ans.html;
+    } else {
+      const pre = document.createElement('pre');
+      pre.textContent = ans.text;
+      body.append(pre);
+    }
+
+    // Footer with Pick button
+    const footer = document.createElement('div');
+    footer.className = 'answer-footer';
+    footer.innerHTML = `
+      <button type="button" class="btn btn-pick" id="pick-btn-${ans.id}">
+        <span>🌟 Pick Option ${ans.label}</span>
+      </button>
+      <div class="reveal-meta" id="reveal-${ans.id}" style="display: none;"></div>
+    `;
+
+    const pickBtn = footer.querySelector(`#pick-btn-${ans.id}`);
+    pickBtn.onclick = () => submitPick(ans.id, 'picked', ans.label);
+
+    card.append(header, body, footer);
+    answersContainer.append(card);
+  });
+}
+
+async function submitPick(chosenId, outcome, chosenLabel) {
+  if (!currentData) return;
+
+  const shownIds = currentData.answers.map(a => a.id);
+
+  // Disable all pick buttons immediately to prevent duplicate submissions
+  document.querySelectorAll('.btn-pick').forEach(b => {
+    b.disabled = true;
+    b.style.pointerEvents = 'none';
+  });
+  btnNoneGood.disabled = true;
+
+  try {
+    const res = await fetch('/api/pick', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt_id: currentData.prompt_id,
+        shown_answer_ids: shownIds,
+        chosen_answer_id: chosenId,
+        outcome: outcome
+      })
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      displayReveals(result.reveals, chosenId, outcome, chosenLabel);
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Failed to record pick.');
+      loadNextPrompt();
+    }
+  } catch (err) {
+    alert('Network error while saving pick.');
+    loadNextPrompt();
+  }
+}
+
+function displayReveals(reveals, chosenId, outcome, chosenLabel) {
+  bottomActions.style.display = 'none';
+  revealBanner.style.display = 'flex';
+
+  const isLast = currentData.progress && currentData.progress.current >= currentData.progress.total;
+  btnNext.textContent = isLast ? 'View Final Results →' : 'Next Prompt →';
+
+  // Setup banner text
+  if (outcome === 'none_good') {
+    revealTitle.textContent = 'Outcome: None were good';
+    revealDesc.textContent = 'You flagged all generated answers as unsatisfactory. Model names revealed below:';
+  } else {
+    const winnerReveal = reveals.find(r => r.answer_id === chosenId);
+    const winnerName = winnerReveal ? winnerReveal.display_name : 'Selected model';
+    revealTitle.textContent = `You picked Option ${chosenLabel} (${winnerName})!`;
+    revealDesc.textContent = 'Here is how each option was generated:';
+  }
+
+  // Update cards
+  reveals.forEach(r => {
+    const card = document.querySelector(`#card-${r.answer_id}`);
+    const pickBtn = document.querySelector(`#pick-btn-${r.answer_id}`);
+    const revealDiv = document.querySelector(`#reveal-${r.answer_id}`);
+
+    if (card && pickBtn && revealDiv) {
+      const isWinner = (r.answer_id === chosenId);
+
+      if (isWinner) {
+        card.classList.add('chosen-winner');
+        pickBtn.className = 'btn btn-picked';
+        pickBtn.innerHTML = '<span>⭐ Your Pick</span>';
+      } else {
+        pickBtn.style.display = 'none';
+      }
+
+      revealDiv.style.display = 'flex';
+      revealDiv.innerHTML = `
+        <div style="overflow: hidden;">
+          <div style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase;">Model</div>
+          <div class="reveal-model-name" title="${r.display_name}">${r.display_name}</div>
+        </div>
+        <div>
+          ${r.is_open 
+            ? '<span class="badge badge-open">🌿 Open Model</span>' 
+            : '<span class="badge badge-closed">🔒 Closed Baseline</span>'
+          }
+        </div>
+      `;
+    }
+  });
+
+  // Scroll to reveal banner smoothly
+  revealBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+btnNext.addEventListener('click', () => {
+  loadNextPrompt();
+});
+
+btnNoneGood.addEventListener('click', () => {
+  submitPick(null, 'none_good', null);
+});
+
+// Kick off
+loadNextPrompt();
+</script>
+{% endblock %}
