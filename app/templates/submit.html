@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Submit prompts</title></head>
+<body><main><h1>Submit your prompts</h1><p>Do not include personal or sensitive information. Add 5 to 15 prompts.</p>
+<form id="prompt-form"><div id="prompts"></div><button type="submit">Start benchmark</button></form>
+<script>
+const categories={{ categories|tojson }};const root=document.querySelector('#prompts');
+function add(){const row=document.createElement('fieldset');row.innerHTML='<textarea maxlength="1500" required placeholder="A task you actually give AI"></textarea><select>'+categories.map(c=>`<option value="${c}">${c.replace('_',' ')}</option>`).join('')+'</select>';root.append(row)}
+for(let i=0;i<5;i++)add();
+document.querySelector('#prompt-form').addEventListener('submit',async e=>{e.preventDefault();const prompts=[...root.children].map(r=>({text:r.querySelector('textarea').value,category:r.querySelector('select').value}));const res=await fetch('/api/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompts})});if(res.ok)location='/pick';else alert((await res.json()).error)})
+</script></main></body></html>

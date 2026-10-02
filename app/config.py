@@ -32,6 +32,7 @@ class AppConfig:
     generation_enabled: bool
     generation: dict
     models: tuple[ModelConfig, ...]
+    invite_codes: tuple[str, ...]
 
 
 def load_config(path: Path | None = None, environ: dict[str, str] | None = None) -> AppConfig:
@@ -62,4 +63,5 @@ def load_config(path: Path | None = None, environ: dict[str, str] | None = None)
         generation_enabled=env.get("GENERATION_ENABLED", "true").lower() == "true",
         generation=raw.get("generation", {}),
         models=models,
+        invite_codes=tuple(code.strip() for code in env.get("INVITE_CODES", "").split(",") if code.strip()),
     )

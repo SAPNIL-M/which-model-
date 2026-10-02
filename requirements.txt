@@ -10,3 +10,4 @@ bleach
 slowapi
 pytest
 pytest-asyncio
+python-multipart

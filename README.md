@@ -4,7 +4,7 @@ WhichModel? is a friend-powered benchmark for finding the best AI model for real
 
 ## Phase 1 status
 
-The foundation includes model configuration, database tables, provider adapters, smoke-test scripts, mocked provider tests, and GitHub Actions CI. The interactive prompt and results flows are planned for later phases.
+The foundation and Phase 2 benchmark flow include invite access, consent, prompt submission, persistent generation jobs, polling, anonymous answer selection, answer reveals, rate limits, and automated tests. Results analytics are planned for Phase 3.
 
 ## Local setup
 
