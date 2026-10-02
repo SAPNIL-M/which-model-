@@ -13,7 +13,9 @@ config = load_config()
 
 @router.get("/", response_class=HTMLResponse)
 def landing(request: Request):
-    return request.app.state.templates.TemplateResponse("index.html", {"request": request})
+    return request.app.state.templates.TemplateResponse(
+        request=request, name="index.html", context={}
+    )
 
 
 @router.post("/enter")
@@ -26,12 +28,16 @@ def enter(
 ):
     if invite_code not in config.invite_codes:
         return request.app.state.templates.TemplateResponse(
-            "index.html", {"request": request, "error": "Invalid invite code."}, status_code=400
+            request=request,
+            name="index.html",
+            context={"error": "Invalid invite code."},
+            status_code=400,
         )
     if not display_name.strip() or consent_third_party != "on":
         return request.app.state.templates.TemplateResponse(
-            "index.html",
-            {"request": request, "error": "Name and third-party consent are required."},
+            request=request,
+            name="index.html",
+            context={"error": "Name and third-party consent are required."},
             status_code=400,
         )
     with Session(engine) as session:

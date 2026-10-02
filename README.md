@@ -4,7 +4,11 @@ WhichModel? is a friend-powered benchmark for finding the best AI model for real
 
 ## Phase 1 status
 
-The foundation and Phase 2 benchmark flow include invite access, consent, prompt submission, persistent generation jobs, polling, anonymous answer selection, answer reveals, rate limits, and automated tests. Results analytics are planned for Phase 3.
+The foundation, benchmark flow, and Phase 3 results flow include invite access, consent, prompt submission, persistent generation jobs, polling, anonymous answer selection, answer reveals, statistics, privacy deletion, group results, and automated tests.
+
+## Deployment
+
+Render can use `render.yaml` with the start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Set the variables from `.env.example` in the Render dashboard and use a Render PostgreSQL connection string for `DATABASE_URL`. Run a single web instance because the generation worker lives in the web process.
 
 ## Local setup
 

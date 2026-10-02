@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your results</title></head>
+<body><main><h1>{{ participant.display_name }}, your results</h1>
+<p>Based on {{ stats.picked }} picked prompts and {{ stats.none_good }} “none are good” responses.</p>
+{% for category, rows in stats.categories.items() %}<section><h2>{{ category.replace('_', ' ') }}</h2>
+{% for model_id, row in rows.items() %}<p>{{ stats.models[model_id].display_name }} — {{ '%.0f'|format(row.win_rate * 100) }}% pairwise win rate ({{ row.comparisons }} comparisons){% if row.small_sample %} — treat this as a hint; not enough picks yet{% endif %}</p>{% endfor %}</section>{% endfor %}
+<button id="delete">Delete my data</button><script>document.querySelector('#delete').onclick=async()=>{if(confirm('Delete all your prompts and results?')){await fetch('/api/me',{method:'DELETE'});location='/'}}</script>
+</main></body></html>

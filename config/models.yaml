@@ -2,23 +2,48 @@ generation:
   temperature: 0.3
   max_tokens: 800
   system_prompt: "Answer helpfully and concisely."
+
 models:
-  - id: open-model-placeholder
-    display_name: Open model placeholder
+  - id: llama-3-2-11b-vision-instruct
+    display_name: Llama 3.2 11B Vision Instruct
     kind: openai_compatible
     base_url: https://integrate.api.nvidia.com/v1
     api_key_env: NVIDIA_API_KEY
-    provider_model_id: replace-with-model-from-list-script
+    provider_model_id: meta/llama-3.2-11b-vision-instruct
     is_open: true
     license_type: custom_open_weights
-    license_note: Replace with the model's actual license.
-    live_enabled: false
-  - id: baseline-placeholder
-    display_name: Closed baseline placeholder
+    license_note: Meta Llama 3.2 Community License
+    live_enabled: true
+
+  - id: gemini-3-5-flash-lite
+    display_name: Gemini 3.5 Flash Lite
     kind: gemini
     api_key_env: GEMINI_API_KEY
-    provider_model_id: replace-with-gemini-model
+    provider_model_id: gemini-3.5-flash-lite
     is_open: false
     license_type: closed
+    license_note: Google Gemini API terms
     is_baseline: true
-    live_enabled: false
+    live_enabled: true
+
+  - id: qwen-3-8-27b
+    display_name: Qwen 3.8 27B
+    kind: openai_compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    provider_model_id: qwen/qwen3.8-27b
+    is_open: true
+    license_type: custom_open_weights
+    license_note: Verify the model license in the provider documentation.
+    live_enabled: true
+
+  - id: gpt-oss-20b
+    display_name: GPT OSS 20B
+    kind: openai_compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    provider_model_id: openai/gpt-oss-20b
+    is_open: true
+    license_type: custom_open_weights
+    license_note: Apache 2.0; verify provider terms.
+    live_enabled: true

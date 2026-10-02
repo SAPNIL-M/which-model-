@@ -1,1 +1,7 @@
-<!doctype html><html lang="en"><body><main><h1>Results</h1><p>Results are coming in Phase 3.</p></main></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Group results</title></head>
+<body><main><h1>Group results</h1>
+{% for model_id, row in stats.models.items() %}<p>{{ row.display_name }} — {{ '%.0f'|format(row.win_rate * 100) }}% pairwise win rate ({{ row.comparisons }} comparisons), {{ '%.0f'|format(row.pick_rate * 100) }}% pick rate{% if row.small_sample %} — not enough picks yet{% endif %}</p>{% endfor %}
+<p>Open models picked over the baseline: {{ stats.open_vs_closed.open_wins }}/{{ stats.open_vs_closed.n }}</p>
+<p>“None are good” rate: {{ '%.0f'|format(stats.none_good_rate * 100) }}%</p>
+<h2>Friends' picks</h2>{% for profile in public_profiles %}<p>{{ profile.display_name }}{% for category, model in profile.top_by_category.items() %} — {{ category.replace('_', ' ') }}: {{ model }}{% endfor %}</p>{% endfor %}
+</main></body></html>

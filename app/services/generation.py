@@ -26,6 +26,7 @@ class GenerationWorker:
         self.task: asyncio.Task | None = None
         self.limits = {
             "openai_compatible": asyncio.Semaphore(3),
+            "groq": asyncio.Semaphore(1),
             "gemini": asyncio.Semaphore(2),
         }
         self.calls_today = 0
@@ -45,9 +46,20 @@ class GenerationWorker:
 
     async def run(self):
         while not self.stop_event.is_set():
-            if self.config.generation_enabled and self.calls_today < self.config.daily_call_cap:
-                await self.process_one()
+            try:
+                if self.config.generation_enabled and self.calls_today < self.config.daily_call_cap:
+                    await self.process_one()
+            except Exception:
+                await self.requeue_running_jobs()
             await asyncio.sleep(0.1)
+
+    async def requeue_running_jobs(self):
+        with Session(engine) as session:
+            for job in session.exec(select(Job).where(Job.status == "running")):
+                job.status = "queued"
+                job.last_error = "Worker recovered after an unexpected error"
+                job.updated_at = datetime.now(timezone.utc)
+            session.commit()
 
     async def process_one(self):
         with Session(engine) as session:
@@ -66,22 +78,29 @@ class GenerationWorker:
                 job.last_error = "Job references missing configuration or data"
                 session.commit()
                 return
+            job_id = job.id
+            answer_id = answer.id
+            prompt_text = prompt.text
             job.status = "running"
             job.attempts += 1
             job.updated_at = datetime.now(timezone.utc)
             session.commit()
 
         try:
-            async with self.limits[model_config.kind]:
-                result = await provider_for(model_config).generate(
-                    self.config.generation.get("system_prompt", ""),
-                    prompt.text,
-                    self.config.generation.get("temperature", 0.3),
-                    self.config.generation.get("max_tokens", 800),
+            limit_key = "groq" if "api.groq.com" in (model_config.base_url or "") else model_config.kind
+            async with self.limits[limit_key]:
+                result = await asyncio.wait_for(
+                    provider_for(model_config).generate(
+                        self.config.generation.get("system_prompt", ""),
+                        prompt_text,
+                        self.config.generation.get("temperature", 0.3),
+                        self.config.generation.get("max_tokens", 800),
+                    ),
+                    timeout=75,
                 )
             with Session(engine) as session:
-                job = session.get(Job, job.id)
-                answer = session.get(Answer, answer.id)
+                job = session.get(Job, job_id)
+                answer = session.get(Answer, answer_id)
                 answer.text = result.text
                 answer.latency_ms = result.latency_ms
                 answer.tokens_in = result.tokens_in
@@ -92,8 +111,8 @@ class GenerationWorker:
                 session.commit()
         except Exception as exc:
             with Session(engine) as session:
-                job = session.get(Job, job.id)
-                answer = session.get(Answer, answer.id)
+                job = session.get(Job, job_id)
+                answer = session.get(Answer, answer_id)
                 answer.status = "error"
                 answer.error = str(exc)
                 job.status = "failed"

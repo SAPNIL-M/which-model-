@@ -23,7 +23,9 @@ def submit_page(request: Request):
     if not participant_id(request):
         return RedirectResponse("/", status_code=303)
     return request.app.state.templates.TemplateResponse(
-        "submit.html", {"request": request, "categories": sorted(CATEGORIES)}
+        request=request,
+        name="submit.html",
+        context={"categories": sorted(CATEGORIES)},
     )
 
 
@@ -44,7 +46,12 @@ async def submit_prompts(request: Request):
             return JSONResponse({"error": "Consent is required."}, status_code=403)
         if session.exec(select(Prompt).where(Prompt.participant_id == pid)).first():
             return JSONResponse({"error": "Prompts have already been submitted."}, status_code=409)
-        models = session.exec(select(Model)).all()
+        configured_ids = {model.id for model in config.models if model.live_enabled}
+        models = [
+            model
+            for model in session.exec(select(Model)).all()
+            if model.id in configured_ids
+        ]
         try:
             for item in prompts:
                 text = str(item.get("text", "")).strip()

@@ -34,7 +34,12 @@ class GeminiProvider:
                         response = await client.post(url, headers=headers, json=payload)
                 if response.status_code == 200:
                     data = response.json()
-                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    candidates = data.get("candidates", [])
+                    parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+                    text = "".join(part.get("text", "") for part in parts).strip()
+                    if not text:
+                        reason = data.get("promptFeedback", {}).get("blockReason", "no text returned")
+                        raise RuntimeError(f"Gemini returned no text: {reason}")
                     usage = data.get("usageMetadata", {})
                     return GenerationResult(
                         text=strip_think_tags(text),

@@ -1,4 +1,5 @@
 import json
+import random
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -22,7 +23,9 @@ def participant_id(request: Request) -> int | None:
 def pick_page(request: Request):
     if not participant_id(request):
         return RedirectResponse("/", status_code=303)
-    return request.app.state.templates.TemplateResponse("pick.html", {"request": request})
+    return request.app.state.templates.TemplateResponse(
+        request=request, name="pick.html", context={}
+    )
 
 
 @router.get("/api/next")
@@ -48,6 +51,7 @@ def next_prompt(request: Request):
             if len(answers) < 2:
                 continue
             answers = answers[:4]
+            random.shuffle(answers)
             return {
                 "prompt_id": prompt.id,
                 "prompt": prompt.text,
