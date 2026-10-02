@@ -56,8 +56,14 @@ def load_config(path: Path | None = None, environ: dict[str, str] | None = None)
         if model.kind == "openai_compatible" and not model.base_url:
             raise ValueError(f"Missing base_url for model {model.id}")
 
+    raw_database_url = env.get("DATABASE_URL", "sqlite:///./whichmodel.db")
+    if raw_database_url.startswith("postgres://"):
+        database_url = raw_database_url.replace("postgres://", "postgresql://", 1)
+    else:
+        database_url = raw_database_url
+
     return AppConfig(
-        database_url=env.get("DATABASE_URL", "sqlite:///./whichmodel.db"),
+        database_url=database_url,
         session_secret=env.get("SESSION_SECRET", ""),
         daily_call_cap=int(env.get("DAILY_CALL_CAP", "100")),
         generation_enabled=env.get("GENERATION_ENABLED", "true").lower() == "true",

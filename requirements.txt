@@ -11,3 +11,4 @@ slowapi
 pytest
 pytest-asyncio
 python-multipart
+psycopg2-binary
