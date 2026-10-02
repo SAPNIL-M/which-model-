@@ -3,6 +3,16 @@
 > Audience: coding agents (GitHub Copilot, Antigravity) and the human owner.
 > Work ONE PHASE AT A TIME, on its own branch, merged via pull request. At the end of each phase, stop, summarize what was built, how to verify it, and known issues, then wait for the owner to say "go to next phase". Do not add features that are not in this spec. Ask before adding any dependency not listed.
 
+## Current Implementation Status
+
+| Phase | Description | Status | Verification & Notes |
+|---|---|---|---|
+| **Phase 1: Foundation & CI** | Architecture, providers, DB schema, config, CI | **Completed** | Full schema in `app/models.py`, OpenAI-compatible (NVIDIA NIM/Groq) & Gemini adapters, 13/13 pytest tests passing. |
+| **Phase 2: Queue & Choosing** | Invite auth, prompt submit, background queue, blind voting | **Completed** | Signed cookie session, multi-prompt submission, async background generation worker, randomized blind comparison, model reveals. |
+| **Phase 3: Results & Deployment** | Statistics, personal/group results, privacy, Render config | **Completed** | Pairwise stats with sample size flags ($n < 10$), personal summary, group leaderboard, GDPR-style data deletion, `render.yaml` Blueprint & Dockerfile ready. |
+| **Phase 4: Live Testing & Write-up** | Render deployment, live friend benchmark, DEV post | **In Progress** | Ready for deployment to Render with credits; live testing with invite codes and drafting challenge post. |
+
+
 ## 1. What this is
 
 Friends keep asking me "which AI model is best for what?" This app answers it with THEIR OWN prompts.
