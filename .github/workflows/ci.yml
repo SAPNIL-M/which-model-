@@ -14,3 +14,8 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
       - run: pytest
+        env:
+          NVIDIA_API_KEY: test-key
+          GEMINI_API_KEY: test-key
+          GROQ_API_KEY: test-key
+          GENERATION_ENABLED: "false"
