@@ -2,8 +2,10 @@ services:
   - type: web
     name: whichmodel
     runtime: python
-    # Paid plan: free instances sleep when idle, which would stop the in-process generation worker.
-    plan: starter
+    # Free tier: web service spins down after 15 min of inactivity.
+    # Polling on /pick keeps the instance alive during prompt evaluation,
+    # and interrupted jobs automatically requeue on wake-up.
+    plan: free
     region: singapore
     numInstances: 1 # the background worker lives in the web process; never scale out
     buildCommand: pip install -r requirements.txt

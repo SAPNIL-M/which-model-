@@ -45,10 +45,14 @@ Models are configured via `config/models.yaml`:
 ## Deployment on Render
 
 The repository includes a ready-to-use `render.yaml` Blueprint that automatically provisions:
-1. **Web Service (`whichmodel`):** FastAPI running on Uvicorn with a health check at `/health` (Starter plan, Singapore).
-2. **Managed Database (`whichmodel-db`):** Render PostgreSQL (free plan) automatically wired into `DATABASE_URL`.
+1. **Web Service (`whichmodel`):** FastAPI running on Uvicorn with a health check at `/health` (Free plan, Singapore).
+2. **Managed Database (`whichmodel-db`):** Render PostgreSQL (Free plan, 1 GB) automatically wired into `DATABASE_URL`.
 
-The web service uses a paid plan because free web services sleep when idle, which stops the background generation worker (about $7/month). The free Postgres database expires 30 days after creation; export your results (`/results.json`) before then or upgrade the database plan.
+**Free Tier Notes:**
+* **$0 / month:** Both the web service and the managed PostgreSQL database are configured on Render's Free tier.
+* **Cold Starts & Polling:** Free web services spin down after 15 minutes of inactivity (taking ~30–50s to wake up on the first visit). While users are evaluating answers on the `/pick` screen, client-side polling keeps the instance active.
+* **Auto Recovery:** If the service goes to sleep while background jobs are running, the worker automatically resets and resumes all queued jobs upon waking up.
+* **Database Expiration:** Render free PostgreSQL databases expire 30 to 90 days after creation. Export your benchmark results anytime via `/results.json` or upgrade the database plan if you wish to preserve data permanently.
 
 ### Steps to Deploy:
 1. Push this repository to GitHub.
