@@ -35,7 +35,7 @@ databases:
   - name: whichmodel-db
     databaseName: whichmodel
     user: whichmodel
-    # Paid plan: free Render Postgres databases expire after 30 days.
-    plan: basic-256mb
+    # Free plan: expires 30 days after creation (enough for the challenge window).
+    plan: free
     region: singapore
     ipAllowList: [] # only reachable from Render services
