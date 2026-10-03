@@ -14,6 +14,7 @@ models:
     license_type: custom_open_weights
     license_note: Meta Llama 3.2 Community License
     live_enabled: true
+    rpm: 30
 
   - id: gemini-3-5-flash-lite
     display_name: Gemini 3.5 Flash Lite
@@ -25,6 +26,7 @@ models:
     license_note: Google Gemini API terms
     is_baseline: true
     live_enabled: true
+    rpm: 12
 
   - id: qwen-3-8-27b
     display_name: Qwen 3.8 27B
@@ -34,8 +36,9 @@ models:
     provider_model_id: qwen/qwen3.8-27b
     is_open: true
     license_type: custom_open_weights
-    license_note: Verify the model license in the provider documentation.
+    license_note: Qwen Research License
     live_enabled: true
+    rpm: 6
 
   - id: gpt-oss-20b
     display_name: GPT OSS 20B
@@ -44,6 +47,7 @@ models:
     api_key_env: GROQ_API_KEY
     provider_model_id: openai/gpt-oss-20b
     is_open: true
-    license_type: custom_open_weights
-    license_note: Apache 2.0; verify provider terms.
+    license_type: permissive
+    license_note: Apache 2.0
     live_enabled: true
+    rpm: 6

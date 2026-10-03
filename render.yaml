@@ -7,7 +7,7 @@ services:
     region: singapore
     numInstances: 1 # the background worker lives in the web process; never scale out
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
@@ -21,7 +21,7 @@ services:
       - key: GENERATION_ENABLED
         value: "true"
       - key: DAILY_CALL_CAP
-        value: "100"
+        value: "600"
       - key: INVITE_CODES
         sync: false
       - key: NVIDIA_API_KEY

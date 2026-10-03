@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from app.config import load_config
 from app.db import engine
-from app.models import Answer, Model, Pick, Prompt
+from app.models import Answer, Job, Model, Pick, Prompt
 from app.rate_limit import allowed
 from app.security import verify_session
 from app.services.markdown_safe import render_safe_markdown
@@ -41,6 +41,7 @@ def next_prompt(request: Request):
             for pick in session.exec(select(Pick).where(Pick.participant_id == pid))
         }
         completed = len(picked_ids)
+
         for prompt in prompts:
             if prompt.id in picked_ids:
                 continue
@@ -49,26 +50,50 @@ def next_prompt(request: Request):
                 .where(Answer.prompt_id == prompt.id, Answer.status == "done")
                 .order_by(Answer.id)
             ).all()
-            if len(answers) < 2:
-                continue
-            answers = answers[:4]
-            random.shuffle(answers)
+            if len(answers) >= 2:
+                answers = answers[:4]
+                random.shuffle(answers)
+                return {
+                    "prompt_id": prompt.id,
+                    "prompt": prompt.text,
+                    "category": prompt.category,
+                    "answers": [
+                        {
+                            "id": answer.id,
+                            "label": chr(65 + index),
+                            "text": answer.text,
+                            "html": render_safe_markdown(answer.text),
+                        }
+                        for index, answer in enumerate(answers)
+                    ],
+                    "progress": {"current": completed + 1, "total": len(prompts)},
+                }
+
+        # If no prompt has >= 2 done answers ready, check if active jobs are still generating
+        unpicked_ids = [p.id for p in prompts if p.id not in picked_ids]
+        active_jobs = session.exec(
+            select(Job).where(Job.prompt_id.in_(unpicked_ids), Job.status.in_(("queued", "running")))
+        ).all() if unpicked_ids else []
+
+        if active_jobs:
+            worker = getattr(request.app.state, "worker", None)
+            is_avail = worker.is_generation_available() if worker else True
+            if not is_avail:
+                return {
+                    "complete": False,
+                    "waiting": False,
+                    "paused": True,
+                    "message": "Generation is paused for today because daily API limits were reached. Your progress is saved, please come back later!",
+                }
             return {
-                "prompt_id": prompt.id,
-                "prompt": prompt.text,
-                "category": prompt.category,
-                "answers": [
-                    {
-                        "id": answer.id,
-                        "label": chr(65 + index),
-                        "text": answer.text,
-                        "html": render_safe_markdown(answer.text),
-                    }
-                    for index, answer in enumerate(answers)
-                ],
-                "progress": {"current": completed + 1, "total": len(prompts)},
+                "complete": False,
+                "waiting": True,
+                "paused": False,
+                "pending_jobs": len(active_jobs),
             }
-    return {"complete": completed == len(prompts), "waiting": completed != len(prompts)}
+
+        # All completed or unviable prompts handled
+        return {"complete": True, "waiting": False, "paused": False}
 
 
 @router.post("/api/pick")
@@ -125,6 +150,7 @@ async def create_pick(request: Request):
                 "model_id": model.id,
                 "display_name": model.display_name,
                 "is_open": model.is_open,
+                "license_type": model.license_type,
             }
             for answer, model in reveals
         ]

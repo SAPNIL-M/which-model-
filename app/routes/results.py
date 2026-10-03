@@ -4,7 +4,7 @@ from sqlmodel import Session, delete, select
 
 from app.config import load_config
 from app.db import engine
-from app.models import Answer, Job, Participant, Pick, Prompt
+from app.models import Answer, Job, Model, Participant, Pick, Prompt
 from app.security import verify_session
 from app.services.stats import calculate_stats
 
@@ -51,6 +51,71 @@ def group_results(request: Request):
         request=request,
         name="results.html",
         context={"stats": stats, "public_profiles": public_profiles},
+    )
+
+
+@router.get("/explore", response_class=HTMLResponse)
+def explore_page(request: Request):
+    with Session(engine) as session:
+        picks = session.exec(select(Pick)).all()
+        picked_prompt_ids = {pick.prompt_id: pick for pick in picks}
+
+        shared_prompts = session.exec(
+            select(Prompt)
+            .where(Prompt.share_publicly == True, Prompt.id.in_(list(picked_prompt_ids.keys())))
+            .order_by(Prompt.id.desc())
+        ).all() if picked_prompt_ids else []
+
+        models_map = {m.id: m for m in session.exec(select(Model)).all()}
+        participants_map = {p.id: p for p in session.exec(select(Participant)).all()}
+
+        items = []
+        for prompt in shared_prompts:
+            pick = picked_prompt_ids.get(prompt.id)
+            if not pick:
+                continue
+            answers = session.exec(
+                select(Answer).where(Answer.prompt_id == prompt.id, Answer.status == "done")
+            ).all()
+            if not answers:
+                continue
+
+            author = participants_map.get(prompt.participant_id)
+            author_name = (
+                author.display_name
+                if (author and author.public_profile)
+                else "Community Participant"
+            )
+
+            answer_data = []
+            for ans in answers:
+                model = models_map.get(ans.model_id)
+                answer_data.append(
+                    {
+                        "id": ans.id,
+                        "text": ans.text,
+                        "model_name": model.display_name if model else ans.model_id,
+                        "is_open": model.is_open if model else False,
+                        "license_type": model.license_type if model else "custom_open_weights",
+                        "latency_ms": ans.latency_ms,
+                        "tokens_out": ans.tokens_out,
+                        "is_chosen": (pick.outcome == "picked" and pick.chosen_answer_id == ans.id),
+                    }
+                )
+
+            items.append(
+                {
+                    "prompt": prompt,
+                    "author_name": author_name,
+                    "outcome": pick.outcome,
+                    "answers": answer_data,
+                }
+            )
+
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="explore.html",
+        context={"items": items},
     )
 
 

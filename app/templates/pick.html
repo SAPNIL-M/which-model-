@@ -5,7 +5,7 @@
 {% block content %}
 <div style="max-width: 1040px; margin: 0 auto;">
   <!-- Header & Progress -->
-  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
     <div>
       <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
         <span>Step 2 of 2</span>
@@ -28,16 +28,40 @@
     </div>
   </div>
 
+  <!-- Judging Guidance Strip -->
+  <div style="margin-bottom: 1.5rem; padding: 0.65rem 1rem; background: rgba(30, 41, 59, 0.4); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.65rem; font-size: 0.86rem; color: var(--text-secondary);">
+    <span style="font-size: 1.1rem;">💡</span>
+    <span>
+      <strong style="color: #ffffff;">Judging Tip:</strong> Pick the answer you would actually choose to use in real life. If unsure between two, pick the closest one. Only click <em>"None of these answers are good"</em> if every model failed.
+    </span>
+  </div>
+
   <!-- Waiting / Generating State Box -->
   <div id="waiting-state" class="waiting-box" style="display: none;">
     <div class="spinner"></div>
     <h3 style="font-size: 1.35rem; margin-bottom: 0.5rem; color: #ffffff;">Generating Model Answers...</h3>
-    <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 1.25rem; font-size: 0.95rem;">
-      Open-weight models and the closed baseline are generating answers to your prompts in parallel.
+    <p style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 1rem; font-size: 0.95rem; line-height: 1.5;">
+      Open-weight models and the baseline are answering your prompts in parallel. Answers appear automatically as each prompt completes.
     </p>
-    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); padding: 0.4rem 0.9rem; border-radius: var(--radius-full); border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.84rem; color: #a5b4fc;">
+    <div id="waiting-status-badge" style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); padding: 0.4rem 0.9rem; border-radius: var(--radius-full); border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.84rem; color: #a5b4fc; margin-bottom: 1rem;">
       <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite;"></span>
-      <span>Checking every 2 seconds for completed answers...</span>
+      <span id="waiting-status-text">Checking for completed answers...</span>
+    </div>
+    <div style="font-size: 0.82rem; color: var(--text-muted); max-width: 480px; margin: 0 auto;">
+      ✨ Prompts are ready in 30–60 seconds. You can safely leave or reload this tab anytime; your evaluation progress is saved.
+    </div>
+  </div>
+
+  <!-- Paused State Box -->
+  <div id="paused-state" class="card" style="display: none; text-align: center; padding: 2.5rem 1.5rem; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05); margin-bottom: 2rem;">
+    <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⏸️</div>
+    <h2 style="font-size: 1.5rem; color: #ffffff; margin-bottom: 0.5rem;">Daily Generation Cap Reached</h2>
+    <p id="paused-message" style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 1.5rem; font-size: 0.95rem; line-height: 1.5;">
+      Generation is currently paused to respect free-tier API rate limits. All your submitted prompts and picks are safely stored.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 0.75rem;">
+      <a href="/results" class="btn btn-secondary">View Community Leaderboard</a>
+      <a href="/explore" class="btn btn-ghost">Explore Public Prompts</a>
     </div>
   </div>
 
@@ -47,7 +71,7 @@
     <div class="prompt-display-box">
       <div class="prompt-display-header">
         <span id="prompt-category-badge" class="badge badge-category">Coding</span>
-        <span style="font-size: 0.82rem; color: var(--text-muted);">Your Prompt</span>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Your Submitted Prompt</span>
       </div>
       <div id="prompt-content" class="prompt-display-text"></div>
     </div>
@@ -100,6 +124,9 @@ const progressCard = document.querySelector('#progress-card');
 const progressText = document.querySelector('#progress-text');
 const progressFill = document.querySelector('#progress-fill');
 const waitingState = document.querySelector('#waiting-state');
+const waitingStatusText = document.querySelector('#waiting-status-text');
+const pausedState = document.querySelector('#paused-state');
+const pausedMessage = document.querySelector('#paused-message');
 const evalArea = document.querySelector('#eval-area');
 const completeState = document.querySelector('#complete-state');
 const promptContent = document.querySelector('#prompt-content');
@@ -121,6 +148,23 @@ const categoryIcons = {
   other: '🔮 Other'
 };
 
+async function updateWaitingProgress() {
+  try {
+    const res = await fetch('/api/session/status');
+    if (res.ok) {
+      const data = await res.json();
+      const prompts = data.prompts || [];
+      const totalReady = prompts.reduce((acc, p) => acc + (p.ready || 0), 0);
+      const totalExpected = prompts.reduce((acc, p) => acc + (p.total || 0), 0);
+      if (totalExpected > 0) {
+        waitingStatusText.textContent = `${totalReady} of ${totalExpected} answers generated so far...`;
+      }
+    }
+  } catch (e) {
+    // Non-fatal status poll
+  }
+}
+
 async function loadNextPrompt() {
   if (pollTimeout) clearTimeout(pollTimeout);
   revealBanner.style.display = 'none';
@@ -129,8 +173,18 @@ async function loadNextPrompt() {
     const res = await fetch('/api/next');
     const data = await res.json();
 
+    if (data.paused) {
+      waitingState.style.display = 'none';
+      evalArea.style.display = 'none';
+      completeState.style.display = 'none';
+      pausedState.style.display = 'block';
+      if (data.message) pausedMessage.textContent = data.message;
+      return;
+    }
+
     if (data.complete) {
       waitingState.style.display = 'none';
+      pausedState.style.display = 'none';
       evalArea.style.display = 'none';
       progressCard.style.display = 'none';
       completeState.style.display = 'block';
@@ -142,15 +196,18 @@ async function loadNextPrompt() {
 
     if (data.waiting) {
       waitingState.style.display = 'block';
+      pausedState.style.display = 'none';
       evalArea.style.display = 'none';
       completeState.style.display = 'none';
-      pollTimeout = setTimeout(loadNextPrompt, 2000);
+      updateWaitingProgress();
+      pollTimeout = setTimeout(loadNextPrompt, 2500);
       return;
     }
 
     // Active prompt ready!
     currentData = data;
     waitingState.style.display = 'none';
+    pausedState.style.display = 'none';
     completeState.style.display = 'none';
     evalArea.style.display = 'block';
     progressCard.style.display = 'block';
@@ -250,7 +307,6 @@ async function submitPick(chosenId, outcome, chosenLabel) {
 
   const shownIds = currentData.answers.map(a => a.id);
 
-  // Disable all pick buttons immediately to prevent duplicate submissions
   document.querySelectorAll('.btn-pick').forEach(b => {
     b.disabled = true;
     b.style.pointerEvents = 'none';
@@ -290,10 +346,9 @@ function displayReveals(reveals, chosenId, outcome, chosenLabel) {
   const isLast = currentData.progress && currentData.progress.current >= currentData.progress.total;
   btnNext.textContent = isLast ? 'View Final Results →' : 'Next Prompt →';
 
-  // Setup banner text
   if (outcome === 'none_good') {
     revealTitle.textContent = 'Outcome: None were good';
-    revealDesc.textContent = 'You flagged all generated answers as unsatisfactory. Model names revealed below:';
+    revealDesc.textContent = 'You flagged all generated answers as unsatisfactory. Model identities revealed below:';
   } else {
     const winnerReveal = reveals.find(r => r.answer_id === chosenId);
     const winnerName = winnerReveal ? winnerReveal.display_name : 'Selected model';
@@ -301,7 +356,6 @@ function displayReveals(reveals, chosenId, outcome, chosenLabel) {
     revealDesc.textContent = 'Here is how each option was generated:';
   }
 
-  // Update cards
   reveals.forEach(r => {
     const card = document.querySelector(`#card-${r.answer_id}`);
     const pickBtn = document.querySelector(`#pick-btn-${r.answer_id}`);
@@ -318,6 +372,15 @@ function displayReveals(reveals, chosenId, outcome, chosenLabel) {
         pickBtn.style.display = 'none';
       }
 
+      let badgeHtml = '';
+      if (!r.is_open) {
+        badgeHtml = '<span class="badge badge-closed">🔒 Closed Baseline</span>';
+      } else if (r.license_type === 'permissive') {
+        badgeHtml = '<span class="badge badge-open">🌿 Open Source (Apache 2.0)</span>';
+      } else {
+        badgeHtml = '<span class="badge badge-open" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.3);">📦 Open-Weight</span>';
+      }
+
       revealDiv.style.display = 'flex';
       revealDiv.innerHTML = `
         <div style="overflow: hidden;">
@@ -325,16 +388,12 @@ function displayReveals(reveals, chosenId, outcome, chosenLabel) {
           <div class="reveal-model-name" title="${r.display_name}">${r.display_name}</div>
         </div>
         <div>
-          ${r.is_open 
-            ? '<span class="badge badge-open">🌿 Open Model</span>' 
-            : '<span class="badge badge-closed">🔒 Closed Baseline</span>'
-          }
+          ${badgeHtml}
         </div>
       `;
     }
   });
 
-  // Scroll to reveal banner smoothly
   revealBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 

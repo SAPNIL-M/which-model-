@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Explore Shared Prompts — WhichModel?{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+        <span>Public Gallery</span>
+        <span>•</span>
+        <span>Community Evaluations</span>
+      </div>
+      <h1 style="font-size: 2.1rem; margin-bottom: 0.35rem;">Explore Community Prompts</h1>
+      <p style="color: var(--text-secondary);">Browse real tasks submitted by participants, inspect model answers, and see which ones won.</p>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/results" class="btn btn-secondary">
+        <span>📊 View Leaderboard</span>
+      </a>
+      <a href="/#join" class="btn btn-primary">
+        <span>⚡ Test Your Prompts</span>
+      </a>
+    </div>
+  </div>
+
+  {% if items %}
+  <div style="display: flex; flex-direction: column; gap: 1.75rem;">
+    {% for item in items %}
+    <div class="card" style="padding: 1.5rem; border-color: rgba(99, 102, 241, 0.25);">
+      <!-- Prompt Header -->
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border-subtle);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span class="badge badge-category">
+            {{ item.prompt.category|clean_category }}
+          </span>
+          <span style="font-size: 0.86rem; color: var(--text-muted);">
+            Submitted by <strong style="color: #cbd5e1;">{{ item.author_name }}</strong>
+          </span>
+        </div>
+
+        <div>
+          {% if item.outcome == 'picked' %}
+            <span class="badge badge-open" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">
+              ✓ Winner Selected
+            </span>
+          {% else %}
+            <span class="badge badge-neutral" style="color: #f87171;">
+              ✕ None were satisfactory
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Prompt Text Box -->
+      <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem 1.25rem; border-radius: var(--radius-md); border-left: 3px solid #818cf8; margin-bottom: 1.25rem; font-size: 0.96rem; line-height: 1.6; color: #f8fafc;">
+        {{ item.prompt.text }}
+      </div>
+
+      <!-- Answers Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        {% for ans in item.answers %}
+        <div class="answer-card {% if ans.is_chosen %}chosen-winner{% endif %}" style="display: flex; flex-direction: column; justify-content: space-between; margin: 0; min-height: 220px;">
+          <div>
+            <!-- Answer Header with Model Name & License -->
+            <div class="answer-header" style="background: rgba(15, 23, 42, 0.4); padding: 0.65rem 0.85rem;">
+              <div style="overflow: hidden;">
+                <div style="font-weight: 700; font-size: 0.92rem; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ ans.model_name }}">
+                  {{ ans.model_name }}
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem;">
+                  {% if ans.latency_ms %}{{ ans.latency_ms }} ms{% endif %}
+                  {% if ans.tokens_out %} · {{ ans.tokens_out }} tokens{% endif %}
+                </div>
+              </div>
+
+              <div>
+                {% if not ans.is_open %}
+                  <span class="badge badge-closed" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">🔒 Closed</span>
+                {% elif ans.license_type == 'permissive' %}
+                  <span class="badge badge-open" style="font-size: 0.72rem; padding: 0.15rem 0.45rem;">🌿 Apache 2.0</span>
+                {% else %}
+                  <span class="badge badge-open" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.3);">📦 Open-Weight</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Answer Body -->
+            <div class="answer-body markdown-content" style="padding: 0.85rem; max-height: 280px; overflow-y: auto; font-size: 0.88rem;">
+              {{ ans.text|markdown }}
+            </div>
+          </div>
+
+          <!-- Answer Footer Tag -->
+          <div style="padding: 0.65rem 0.85rem; border-top: 1px solid var(--border-subtle); background: rgba(15, 23, 42, 0.3); text-align: center;">
+            {% if ans.is_chosen %}
+              <strong style="color: #34d399; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                ⭐ Evaluator's Pick
+              </strong>
+            {% else %}
+              <span style="color: var(--text-muted); font-size: 0.8rem;">Evaluated</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="card" style="text-align: center; padding: 3.5rem 1.5rem;">
+    <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+    <h2 style="font-size: 1.6rem; color: #ffffff; margin-bottom: 0.5rem;">No Public Prompts Yet</h2>
+    <p style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 1.5rem; line-height: 1.5;">
+      Shared prompts and side-by-side answers will appear here as soon as participants evaluate their prompts and choose to share them publicly.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="/#join" class="btn btn-primary">
+        <span>⚡ Submit the First Prompts</span>
+      </a>
+      <a href="/results" class="btn btn-secondary">
+        <span>📊 View Group Leaderboard</span>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

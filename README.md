@@ -36,8 +36,8 @@ Models are configured via `config/models.yaml`:
 | Model | Kind | Provider | License Type | Role |
 |---|---|---|---|---|
 | **Llama 3.2 11B Vision Instruct** | OpenAI-compatible | NVIDIA NIM | Open-weight (Community) | Open Candidate |
-| **Qwen 3.8 27B** | OpenAI-compatible | Groq | Open-weight | Open Candidate |
-| **GPT-OSS 20B** | OpenAI-compatible | Groq | Open-weight (Apache 2.0) | Open Candidate |
+| **Qwen 3.8 27B** | OpenAI-compatible | Groq | Open-weight (Research) | Open Candidate |
+| **GPT-OSS 20B** | OpenAI-compatible | Groq | Open-source (Apache 2.0) | Open Candidate |
 | **Gemini 3.5 Flash Lite** | Gemini API | Google | Closed | Comparison Baseline |
 
 ---

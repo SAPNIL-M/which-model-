@@ -22,6 +22,7 @@ class ModelConfig:
     license_note: str | None = None
     is_baseline: bool = False
     live_enabled: bool = False
+    rpm: int | None = None
 
 
 @dataclass(frozen=True)

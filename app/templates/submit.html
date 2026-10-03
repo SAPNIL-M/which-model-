@@ -23,22 +23,28 @@
     </div>
   </div>
 
-  <!-- Privacy & Quick Action Banner -->
-  <div class="card" style="margin-bottom: 2rem; background: rgba(30, 41, 59, 0.45); border-color: rgba(99, 102, 241, 0.2);">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
-      <div style="display: flex; align-items: flex-start; gap: 0.75rem; max-width: 580px;">
-        <span style="font-size: 1.35rem; flex-shrink: 0; line-height: 1;">🛡️</span>
+  <!-- Guidance & Privacy Banner -->
+  <div class="card" style="margin-bottom: 1.75rem; background: rgba(30, 41, 59, 0.45); border-color: rgba(99, 102, 241, 0.2);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+      <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="font-size: 1.35rem; flex-shrink: 0; line-height: 1;">💡</span>
         <div>
-          <strong style="color: #ffffff; font-size: 0.92rem; display: block;">Privacy Best Practice</strong>
-          <span style="font-size: 0.85rem; color: var(--text-secondary);">
-            Prompts are sent to AI providers for benchmarking. Please do not submit confidential business secrets, passwords, or personal identifying information.
+          <strong style="color: #ffffff; font-size: 0.9rem; display: block; margin-bottom: 0.2rem;">Need Inspiration?</strong>
+          <span style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.4; display: block;">
+            Think of real questions you recently gave ChatGPT, Claude, or Google—a tricky bug, a tricky email, or study help. Each box has a contextual idea placeholder.
           </span>
         </div>
       </div>
 
-      <button type="button" id="btn-fill-samples" class="btn btn-secondary btn-sm" style="font-size: 0.85rem;">
-        <span>⚡ Quick-fill 5 Sample Prompts</span>
-      </button>
+      <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="font-size: 1.35rem; flex-shrink: 0; line-height: 1;">🛡️</span>
+        <div>
+          <strong style="color: #ffffff; font-size: 0.9rem; display: block; margin-bottom: 0.2rem;">Privacy Reminder</strong>
+          <span style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.4; display: block;">
+            Prompts are processed by third-party model APIs. Do not submit passwords, proprietary company secrets, or private personal data.
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -70,10 +76,8 @@
 <script>
 const categories = {{ categories|tojson }};
 const container = document.querySelector('#prompts-container');
-const counterBadge = document.querySelector('#prompt-counter-badge');
 const countText = document.querySelector('#prompt-count-text');
 const btnAdd = document.querySelector('#btn-add-prompt');
-const btnFillSamples = document.querySelector('#btn-fill-samples');
 const form = document.querySelector('#prompt-form');
 const btnSubmit = document.querySelector('#btn-submit');
 const submitText = document.querySelector('#submit-btn-text');
@@ -90,28 +94,45 @@ const categoryIcons = {
   other: '🔮 Other'
 };
 
-const samplePrompts = [
-  {
-    category: 'coding',
-    text: 'Write a Python function to safely flatten a nested JSON dictionary with a custom separator for keys. Include clear type hints and docstrings.'
-  },
-  {
-    category: 'writing',
-    text: 'Draft a friendly, professional announcement email to our engineering team about switching to our new model benchmark tool.'
-  },
-  {
-    category: 'study_help',
-    text: 'Explain the difference between optimistic and pessimistic concurrency control in databases with intuitive real-world examples.'
-  },
-  {
-    category: 'summarizing',
-    text: 'Summarize the primary architectural trade-offs between monolithic backends and microservices into four concise bullet points.'
-  },
-  {
-    category: 'translation',
-    text: 'Translate this sentence into natural, professional French and Spanish: "We are committed to delivering low-latency, transparent AI benchmarks."'
-  }
-];
+const placeholderIdeas = {
+  coding: [
+    'e.g. How do I center a button on a webpage with simple HTML and CSS?',
+    'e.g. Write an Excel formula to find duplicate names in column A.',
+    'e.g. Write a simple Python script to calculate my monthly loan EMI.'
+  ],
+  writing: [
+    'e.g. Write a polite WhatsApp message to my boss asking for sick leave tomorrow.',
+    'e.g. Help me write a warm thank-you message to a friend who hosted dinner.',
+    'e.g. Write a friendly, polite email to customer support asking for a refund.'
+  ],
+  study_help: [
+    'e.g. Explain the difference between debit and credit cards in simple words.',
+    'e.g. How does photosynthesis work? Explain it like I am 12 years old.',
+    'e.g. Why is the sky blue during the day and red during sunset?'
+  ],
+  summarizing: [
+    'e.g. [Paste long text or news] - Give me the top 3 takeaways in simple bullet points.',
+    'e.g. Summarize the plot and moral of the story of Romeo and Juliet in 3 sentences.',
+    'e.g. Summarize what to look out for in a standard rental agreement in 4 points.'
+  ],
+  translation: [
+    'e.g. How do I say "Where is the nearest train station?" in Spanish?',
+    'e.g. Translate "Thank you so much for your hospitality" into polite Hindi.',
+    'e.g. How do I politely ask "Can I have the bill please?" in French?'
+  ],
+  other: [
+    'e.g. Give me 5 quick 15-minute dinner ideas using eggs and vegetables.',
+    'e.g. Plan a fun, budget-friendly 2-day weekend trip with friends.',
+    'e.g. What are some easy home remedies to soothe a sore throat?'
+  ]
+};
+
+let promptIndexCounter = 0;
+
+function getPlaceholderFor(category, cardIndex) {
+  const list = placeholderIdeas[category] || placeholderIdeas.other;
+  return list[cardIndex % list.length];
+}
 
 function updateCounter() {
   const count = container.children.length;
@@ -126,7 +147,6 @@ function updateCounter() {
     btnAdd.style.cursor = 'pointer';
   }
 
-  // Update prompt card headers and delete buttons
   [...container.children].forEach((card, idx) => {
     card.querySelector('.prompt-idx').textContent = idx + 1;
     const btnDel = card.querySelector('.btn-delete-prompt');
@@ -136,12 +156,13 @@ function updateCounter() {
   });
 }
 
-function createPromptCard(initialData = null) {
+function createPromptCard(defaultCat = null) {
+  const cardIndex = promptIndexCounter++;
   const card = document.createElement('div');
   card.className = 'prompt-card';
 
-  const defaultCat = initialData?.category || categories[0];
-  const initialText = initialData?.text || '';
+  const initialCat = defaultCat || categories[cardIndex % categories.length] || categories[0];
+  const initialPlaceholder = getPlaceholderFor(initialCat, cardIndex);
 
   card.innerHTML = `
     <div class="prompt-card-header">
@@ -151,7 +172,7 @@ function createPromptCard(initialData = null) {
         </span>
         <select class="form-select prompt-category" style="width: auto; padding: 0.35rem 2rem 0.35rem 0.75rem; font-size: 0.86rem; font-weight: 600;">
           ${categories.map(c => `
-            <option value="${c}" ${c === defaultCat ? 'selected' : ''}>
+            <option value="${c}" ${c === initialCat ? 'selected' : ''}>
               ${categoryIcons[c] || c.replace('_', ' ')}
             </option>
           `).join('')}
@@ -159,7 +180,7 @@ function createPromptCard(initialData = null) {
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <span class="char-counter"><span class="char-val">${initialText.length}</span> / 1500</span>
+        <span class="char-counter"><span class="char-val">0</span> / 1500</span>
         <button type="button" class="btn btn-ghost btn-sm btn-delete-prompt" style="color: #f87171; padding: 0.2rem 0.5rem;" title="Remove this prompt">
           ✕ Remove
         </button>
@@ -171,22 +192,28 @@ function createPromptCard(initialData = null) {
         class="form-textarea prompt-text" 
         maxlength="1500" 
         required 
-        placeholder="Enter a task or prompt you actually give to AI models..."
+        placeholder="${initialPlaceholder}"
         rows="3"
-      >${initialText}</textarea>
+      ></textarea>
     </div>
 
     <div class="prompt-card-footer">
       <label class="checkbox-label" style="margin: 0; font-size: 0.84rem;">
-        <input type="checkbox" class="prompt-share" ${initialData?.share_publicly ? 'checked' : ''}>
-        <span>Allow this prompt text to appear in community results (optional)</span>
+        <input type="checkbox" class="prompt-share">
+        <span>Share this prompt and its answers on the public Explore page (optional)</span>
       </label>
     </div>
   `;
 
   const textarea = card.querySelector('.prompt-text');
+  const selectCat = card.querySelector('.prompt-category');
   const charVal = card.querySelector('.char-val');
   const counterSpan = card.querySelector('.char-counter');
+
+  // Update ghost placeholder dynamically when user switches category
+  selectCat.addEventListener('change', () => {
+    textarea.placeholder = getPlaceholderFor(selectCat.value, cardIndex);
+  });
 
   textarea.addEventListener('input', () => {
     const len = textarea.value.length;
@@ -211,26 +238,21 @@ function createPromptCard(initialData = null) {
   return card;
 }
 
-function addPrompt(data = null) {
+function addPrompt(cat = null) {
   if (container.children.length < 15) {
-    const card = createPromptCard(data);
+    const card = createPromptCard(cat);
     container.append(card);
     updateCounter();
   }
 }
 
-// Initialize with 5 prompts
+// Initialize with 5 prompts across distinct default categories
+const defaultInitialCats = ['coding', 'writing', 'study_help', 'summarizing', 'translation'];
 for (let i = 0; i < 5; i++) {
-  addPrompt();
+  addPrompt(defaultInitialCats[i]);
 }
 
 btnAdd.addEventListener('click', () => addPrompt());
-
-btnFillSamples.addEventListener('click', () => {
-  container.innerHTML = '';
-  samplePrompts.forEach(p => addPrompt(p));
-  errorBanner.style.display = 'none';
-});
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -251,13 +273,12 @@ form.addEventListener('submit', async (e) => {
 
   for (let i = 0; i < prompts.length; i++) {
     if (!prompts[i].text) {
-      errorMessage.textContent = `Prompt #${i + 1} cannot be empty.`;
+      errorMessage.textContent = `Prompt #${i + 1} cannot be empty. Enter your task or prompt.`;
       errorBanner.style.display = 'flex';
       return;
     }
   }
 
-  // Loading state
   btnSubmit.disabled = true;
   submitSpinner.style.display = 'inline-block';
   submitText.textContent = 'Starting benchmark & queueing models...';

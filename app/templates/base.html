@@ -25,10 +25,17 @@
       </a>
       <nav>
         <ul class="nav-links">
-          <li><a href="/submit" class="nav-link {% if request.url.path == '/submit' %}active{% endif %}">Submit Prompts</a></li>
-          <li><a href="/pick" class="nav-link {% if request.url.path == '/pick' %}active{% endif %}">Blind Pick</a></li>
-          <li><a href="/results/me" class="nav-link {% if request.url.path == '/results/me' %}active{% endif %}">My Results</a></li>
-          <li><a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">Leaderboard</a></li>
+          {% if request.cookies.get("whichmodel_session") %}
+            <li><a href="/submit" class="nav-link {% if request.url.path == '/submit' %}active{% endif %}">Submit</a></li>
+            <li><a href="/pick" class="nav-link {% if request.url.path == '/pick' %}active{% endif %}">Blind Pick</a></li>
+            <li><a href="/results/me" class="nav-link {% if request.url.path == '/results/me' %}active{% endif %}">My Results</a></li>
+            <li><a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">Leaderboard</a></li>
+            <li><a href="/explore" class="nav-link {% if request.url.path == '/explore' %}active{% endif %}">Explore</a></li>
+          {% else %}
+            <li><a href="/explore" class="nav-link {% if request.url.path == '/explore' %}active{% endif %}">Explore Prompts</a></li>
+            <li><a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">Leaderboard</a></li>
+            <li><a href="/#join" class="btn btn-primary btn-sm" style="padding: 0.35rem 0.85rem; font-size: 0.85rem;">⚡ Join Benchmark</a></li>
+          {% endif %}
         </ul>
       </nav>
     </div>

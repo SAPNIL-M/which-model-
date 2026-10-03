@@ -20,8 +20,13 @@ def participant_id(request: Request) -> int | None:
 
 @router.get("/submit", response_class=HTMLResponse)
 def submit_page(request: Request):
-    if not participant_id(request):
+    pid = participant_id(request)
+    if not pid:
         return RedirectResponse("/", status_code=303)
+    with Session(engine) as session:
+        has_prompts = session.exec(select(Prompt).where(Prompt.participant_id == pid)).first() is not None
+        if has_prompts:
+            return RedirectResponse("/pick", status_code=303)
     return request.app.state.templates.TemplateResponse(
         request=request,
         name="submit.html",

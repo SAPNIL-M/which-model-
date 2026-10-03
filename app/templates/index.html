@@ -3,9 +3,9 @@
 {% block title %}WhichModel? — Compare AI Models on Your Real Prompts{% endblock %}
 
 {% block content %}
-<div style="max-width: 840px; margin: 0 auto;">
+<div style="max-width: 860px; margin: 0 auto;">
   <!-- Hero Section -->
-  <section class="card-hero" style="border-radius: var(--radius-lg); margin-bottom: 2.5rem;">
+  <section class="card-hero" style="border-radius: var(--radius-lg); margin-bottom: 2rem;">
     <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.35rem 0.85rem; border-radius: var(--radius-full); margin-bottom: 1.25rem;">
       <span style="font-size: 0.85rem; color: #a5b4fc; font-weight: 600;">⚡ Open Source vs Closed Benchmark · Real Blind Taste Test</span>
     </div>
@@ -14,97 +14,160 @@
       Which AI model is <span style="background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">actually best</span> for your prompts?
     </h1>
     
-    <p style="font-size: 1.12rem; max-width: 640px; margin: 0 auto; color: var(--text-secondary);">
-      No synthetic leaderboards. Submit 5 to 15 real tasks you actually give AI, judge randomized anonymous answers side-by-side, and discover how open-weight models stack up against closed baselines.
+    <p style="font-size: 1.12rem; max-width: 660px; margin: 0 auto; color: var(--text-secondary); line-height: 1.6;">
+      No synthetic leaderboards. Submit 5 to 15 real tasks you actually give AI, judge randomized anonymous answers side-by-side, and discover how open-weight models stack up against closed baselines on your work.
     </p>
   </section>
 
-  <!-- Feature Grid -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
-    <div class="card card-hover" style="padding: 1.25rem;">
-      <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">🎯</div>
-      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">Your Real Tasks</h3>
-      <p style="font-size: 0.9rem;">Test on coding, drafting, studying, summarizing, and translation tasks that matter to you.</p>
+  <!-- Returning Participant Banner if already signed in -->
+  {% if participant %}
+  <div class="card" style="margin-bottom: 2rem; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.4); text-align: center; padding: 1.5rem;">
+    <div style="font-size: 1.75rem; margin-bottom: 0.35rem;">👋</div>
+    <h3 style="font-size: 1.2rem; color: #ffffff; margin-bottom: 0.35rem;">Welcome back, {{ participant.display_name }}!</h3>
+    <p style="color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 1rem;">
+      You have an active benchmark session in progress. Pick up right where you left off.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{% if has_prompts %}/pick{% else %}/submit{% endif %}" class="btn btn-primary">
+        <span>Continue Benchmark →</span>
+      </a>
+      <a href="/results/me" class="btn btn-secondary">
+        <span>My Personal Results</span>
+      </a>
     </div>
-    <div class="card card-hover" style="padding: 1.25rem;">
-      <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">🙈</div>
-      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">Blind Taste Test</h3>
-      <p style="font-size: 0.9rem;">Model names remain strictly hidden during evaluation. Pick solely based on answer quality.</p>
+  </div>
+  {% endif %}
+
+  <!-- 4-Step How It Works Walkthrough -->
+  <div class="card" style="margin-bottom: 2.25rem; background: rgba(15, 23, 42, 0.55); border-color: rgba(99, 102, 241, 0.25);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-size: 1.2rem; margin: 0;">How It Works</h2>
+      <span class="badge badge-neutral" style="color: #a5b4fc;">⏱️ Takes ~5–10 minutes</span>
     </div>
-    <div class="card card-hover" style="padding: 1.25rem;">
-      <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">📊</div>
-      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">Honest Results</h3>
-      <p style="font-size: 0.9rem;">Unveils open vs closed win-rates, task-by-task strengths, latency metrics, and pairwise rankings.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+      <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 800; font-size: 1.2rem; color: #818cf8; margin-bottom: 0.25rem;">1</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; margin-bottom: 0.35rem;">Paste Real Tasks</div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">Add 5–15 prompts you genuinely use AI for (coding, drafting, study, etc.).</p>
+      </div>
+
+      <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 800; font-size: 1.2rem; color: #818cf8; margin-bottom: 0.25rem;">2</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; margin-bottom: 0.35rem;">Parallel Generation</div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">Open-weight models and the closed baseline generate answers in the background.</p>
+      </div>
+
+      <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 800; font-size: 1.2rem; color: #818cf8; margin-bottom: 0.25rem;">3</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; margin-bottom: 0.35rem;">Blind Taste Test</div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">Read anonymous answers side-by-side, pick the winner, then reveal the model identities.</p>
+      </div>
+
+      <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 800; font-size: 1.2rem; color: #818cf8; margin-bottom: 0.25rem;">4</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 0.92rem; margin-bottom: 0.35rem;">Custom Verdict</div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">Get personalized win-rates, head-to-head showdown stats, and task breakdown.</p>
+      </div>
     </div>
   </div>
 
-  <!-- Sign In / Enter Card -->
-  <div class="card" style="max-width: 540px; margin: 0 auto; border-color: rgba(99, 102, 241, 0.25); box-shadow: var(--shadow-lg);">
-    <div style="margin-bottom: 1.5rem; text-align: center;">
-      <h2 style="font-size: 1.4rem; margin-bottom: 0.35rem;">Join the Benchmark</h2>
-      <p style="font-size: 0.92rem;">Enter your invite code to begin your personalized session.</p>
+  <!-- Dual Paths Grid: Public Visitor vs Participant -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;" id="join">
+    <!-- Path 1: Join / Enter Card -->
+    <div class="card" style="border-color: rgba(99, 102, 241, 0.35); box-shadow: var(--shadow-lg); display: flex; flex-col; justify-content: space-between;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; margin-bottom: 0.5rem;">
+          <span>Participant Track</span>
+        </div>
+        <h2 style="font-size: 1.35rem; margin-bottom: 0.35rem;">Join the Benchmark</h2>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Enter your invite code to evaluate your own prompts and generate tailored results.
+        </p>
+
+        {% if error %}
+        <div class="alert alert-error" role="alert" style="margin-bottom: 1rem;">
+          <span>⚠️</span>
+          <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/enter">
+          <div class="form-group">
+            <label class="form-label" for="invite_code">Invite Code</label>
+            <input 
+              id="invite_code" 
+              name="invite_code" 
+              class="form-input" 
+              placeholder="e.g. from your friend" 
+              required 
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="display_name">Your Name / Nickname</label>
+            <input 
+              id="display_name" 
+              name="display_name" 
+              maxlength="100" 
+              class="form-input" 
+              placeholder="What should we call you?" 
+              required
+            >
+          </div>
+
+          <div style="margin-block: 1rem; padding: 0.85rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label class="checkbox-label">
+              <input type="checkbox" name="consent_third_party" required>
+              <span style="font-size: 0.82rem;">
+                <strong style="color: var(--text-main);">Required Provider Consent:</strong>
+                I understand my submitted prompts will be sent to third-party AI providers (NVIDIA NIM, Groq, and Google Gemini) for response generation.
+              </span>
+            </label>
+
+            <label class="checkbox-label" style="margin-top: 0.65rem;">
+              <input type="checkbox" name="public_profile">
+              <span style="font-size: 0.82rem;">
+                <strong style="color: var(--text-main);">Public Recognition (Optional):</strong>
+                Show my name and favorite models in the public community leaderboard.
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem;">
+            Enter &amp; Submit Prompts →
+          </button>
+        </form>
+      </div>
     </div>
 
-    {% if error %}
-    <div class="alert alert-error" role="alert">
-      <span>⚠️</span>
-      <span>{{ error }}</span>
-    </div>
-    {% endif %}
+    <!-- Path 2: Just Looking / Public Exploration Card -->
+    <div class="card" style="border-color: rgba(148, 163, 184, 0.2); background: rgba(30, 41, 59, 0.35); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem;">
+          <span>Public Access · No Code Needed</span>
+        </div>
+        <h2 style="font-size: 1.35rem; margin-bottom: 0.35rem;">Just Looking?</h2>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Don't have an invite code? You can still explore all public community prompts, see every model's generated answer, and view the live standings.
+        </p>
 
-    <form method="post" action="/enter">
-      <div class="form-group">
-        <label class="form-label" for="invite_code">Invite Code</label>
-        <input 
-          id="invite_code" 
-          name="invite_code" 
-          class="form-input" 
-          placeholder="Enter invite code (e.g. from your friend)" 
-          required 
-          autocomplete="off"
-        >
+        <div style="padding: 0.85rem; background: rgba(15, 23, 42, 0.4); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 1.25rem;">
+          <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+            💡 <strong>Why is benchmark participation invite-only?</strong> Live generation runs on free API tiers (NVIDIA NIM, Groq, Google Gemini) with daily rate limits. The invite gate protects quota so friends can complete full evaluations.
+          </div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="display_name">Your Name / Nickname</label>
-        <input 
-          id="display_name" 
-          name="display_name" 
-          maxlength="100" 
-          class="form-input" 
-          placeholder="What should we call you?" 
-          required
-        >
+      <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+        <a href="/explore" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+          <span>🔍 Explore Shared Prompts &amp; Answers</span>
+        </a>
+        <a href="/results" class="btn btn-ghost" style="width: 100%; justify-content: center; color: #a5b4fc;">
+          <span>📊 View Community Leaderboard →</span>
+        </a>
       </div>
-
-      <div style="margin-block: 1.25rem; padding: 1rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <label class="checkbox-label">
-          <input type="checkbox" name="consent_third_party" required>
-          <span>
-            <strong style="color: var(--text-main);">Required Provider Consent:</strong>
-            I understand my submitted prompts will be sent to third-party AI model providers (NVIDIA NIM and Google Gemini) for response generation.
-          </span>
-        </label>
-
-        <label class="checkbox-label" style="margin-top: 0.75rem;">
-          <input type="checkbox" name="public_profile">
-          <span>
-            <strong style="color: var(--text-main);">Public Recognition (Optional):</strong>
-            Show my name and favorite models in the public community leaderboard.
-          </span>
-        </label>
-      </div>
-
-      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
-        Enter &amp; Submit Prompts →
-      </button>
-    </form>
-
-    <div style="text-align: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
-      <a href="/results" style="font-size: 0.9rem; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 0.35rem;">
-        <span>👀 Want to see past community findings?</span>
-        <strong style="color: var(--primary);">View Leaderboard →</strong>
-      </a>
     </div>
   </div>
 </div>
