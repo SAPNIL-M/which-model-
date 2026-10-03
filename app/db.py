@@ -5,7 +5,7 @@ from app.models import Answer, Job, Model
 
 
 config = load_config()
-engine = create_engine(config.database_url, echo=False)
+engine = create_engine(config.database_url, echo=False, pool_pre_ping=True)
 
 
 def create_db_and_tables() -> None:

@@ -45,8 +45,10 @@ Models are configured via `config/models.yaml`:
 ## Deployment on Render
 
 The repository includes a ready-to-use `render.yaml` Blueprint that automatically provisions:
-1. **Web Service (`whichmodel`):** FastAPI running on Uvicorn with a health check at `/health`.
-2. **Managed Database (`whichmodel-db`):** Render PostgreSQL instance automatically wired into `DATABASE_URL`.
+1. **Web Service (`whichmodel`):** FastAPI running on Uvicorn with a health check at `/health` (Starter plan, Singapore).
+2. **Managed Database (`whichmodel-db`):** Render PostgreSQL (`basic-256mb`) automatically wired into `DATABASE_URL`.
+
+Paid plans are used on purpose: free web services sleep when idle (which stops the background generation worker) and free Postgres databases expire after 30 days. Expect roughly $7 + $6 per month.
 
 ### Steps to Deploy:
 1. Push this repository to GitHub.
